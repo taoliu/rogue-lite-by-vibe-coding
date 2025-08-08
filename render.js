@@ -13,6 +13,9 @@ function drawTile(x,y,t){
   else if(t===T.FLOOR) rect(px,py,TILE_SIZE,TILE_SIZE,'#0f1522');
   else if(t===T.STAIRS){ rect(px,py,TILE_SIZE,TILE_SIZE,'#0f1522'); ctx.fillStyle='#b8c1ff'; ctx.fillRect(px+8,py+8,8,8); }
   else if(t===T.CHEST){ rect(px,py,TILE_SIZE,TILE_SIZE,'#0f1522'); ctx.fillStyle='#8b5e34'; ctx.fillRect(px+5,py+6,14,12); ctx.fillStyle='#d4af37'; ctx.fillRect(px+5,py+12,14,2); }
+  else if(t===T.WATER){ rect(px,py,TILE_SIZE,TILE_SIZE,'#113355'); }
+  else if(t===T.FOUNTAIN){ rect(px,py,TILE_SIZE,TILE_SIZE,'#0f1522'); ctx.fillStyle='#4fc3f7'; ctx.beginPath(); ctx.arc(px+TILE_SIZE/2, py+TILE_SIZE/2, 6, 0, Math.PI*2); ctx.fill(); }
+  else if(t===T.TRAP){ rect(px,py,TILE_SIZE,TILE_SIZE,'#0f1522'); ctx.fillStyle='#000'; ctx.fillRect(px+4,py+4,16,16); }
 }
 
 function render(){
@@ -35,6 +38,20 @@ function render(){
   // player
   const px=G.player.x*TILE_SIZE+TILE_SIZE/2, py=G.player.y*TILE_SIZE+TILE_SIZE/2;
   ctx.fillText(G.player.icon || '@', px, py);
+
+  // ability effects
+  for(const fx of G.effects){
+    if(fx.type==='circle'){
+      const ex=fx.x*TILE_SIZE+TILE_SIZE/2, ey=fx.y*TILE_SIZE+TILE_SIZE/2;
+      ctx.strokeStyle=fx.color; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(ex,ey,fx.r,0,Math.PI*2); ctx.stroke();
+    } else if(fx.type==='line'){
+      const x1=fx.x*TILE_SIZE+TILE_SIZE/2, y1=fx.y*TILE_SIZE+TILE_SIZE/2;
+      const x2=fx.x2*TILE_SIZE+TILE_SIZE/2, y2=fx.y2*TILE_SIZE+TILE_SIZE/2;
+      ctx.strokeStyle=fx.color; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    }
+  }
 }
 
 function renderInv(){
