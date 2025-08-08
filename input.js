@@ -10,7 +10,7 @@ function onKey(e){
     const m=entityAt(G.player.x+d[0], G.player.y+d[1]);
     if(m){
       const dmg=Math.max(1, G.player.atk-(m.def||0));
-      m.hp-=dmg; log(`You strike the ${m.name} for ${dmg}.`); addEffect(G.player.x+d[0], G.player.y+d[1]);
+      m.hp-=dmg; log(`You strike the ${m.name} for ${dmg}.`);
       if(m.hp<=0){ gainXP(m.xp); maybeDrop(m); G.entities=G.entities.filter(e=>e!==m);} tick();
     } else log('No enemy to strike.');
   }

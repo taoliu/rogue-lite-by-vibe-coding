@@ -10,8 +10,7 @@ const G = {
   turn: 0,
   cooldown: 0,
   gold: 0,
-  messages: [],
-  effects: [] // transient visual effects
+  messages: []
 };
 
 function log(msg){
@@ -105,7 +104,8 @@ function newPlayer(cls){
     lvl: 1, xp: 0, nextXp: 20,
     abilityCd: 0, abilityMaxCd: base.abilityCd,
     inv: [],
-    weapon: null, armor: null
+    weapon: null, armor: null,
+    icon: base.icon || '@'
   }
 }
 
@@ -177,8 +177,6 @@ function fov(){
 // --- Movement & Combat ---
 function isWalkable(x,y){ return between(x,0,MAP_W-1) && between(y,0,MAP_H-1) && G.map[y][x]!==T.WALL; }
 function entityAt(x,y){ return G.entities.find(e=>e.x===x&&e.y===y); }
-function addEffect(x,y,color='#ff0000'){ G.effects.push({x,y,color,ttl:2}); }
-
 function move(dx,dy){
   const nx=G.player.x+dx, ny=G.player.y+dy;
   if(!isWalkable(nx,ny)){ log('You bump into a wall.'); return; }
@@ -186,7 +184,7 @@ function move(dx,dy){
   if(m){
     // attack melee
     const dmg = Math.max(1, G.player.atk - (m.def||0));
-    m.hp -= dmg; log(`You hit the ${m.name} for ${dmg}.`); addEffect(nx,ny);
+    m.hp -= dmg; log(`You hit the ${m.name} for ${dmg}.`);
     if(m.hp<=0){
       log(`The ${m.name} dies.`);
       gainXP(m.xp);
@@ -219,7 +217,7 @@ function ability(){
       const m=entityAt(G.player.x+dx, G.player.y+dy);
       if(m){
         const dmg = Math.max(1, G.player.atk+1-(m.def||0));
-        m.hp-=dmg; log(`Whirlwind hits ${m.name} for ${dmg}.`); addEffect(G.player.x+dx,G.player.y+dy);
+        m.hp-=dmg; log(`Whirlwind hits ${m.name} for ${dmg}.`);
         if(m.hp<=0){ gainXP(m.xp); maybeDrop(m); G.entities=G.entities.filter(e=>e!==m);} }
     }
     G.player.abilityCd = G.player.abilityMaxCd;
@@ -241,7 +239,7 @@ function ability(){
 function aoe(cx,cy,r,dmg){
   for(const e of [...G.entities]){
     if(Math.hypot(e.x-cx,e.y-cy)<=r){
-      e.hp-=dmg; log(`${e.name} takes ${dmg} damage.`); addEffect(e.x,e.y);
+      e.hp-=dmg; log(`${e.name} takes ${dmg} damage.`);
       if(e.hp<=0){ gainXP(e.xp); maybeDrop(e); G.entities=G.entities.filter(x=>x!==e); }
     }
   }
@@ -252,7 +250,7 @@ function shootLine(dmg, range){
   const dir = G.lastDir || [0,-1];
   let [x,y]=[G.player.x, G.player.y];
   for(let i=0;i<range;i++){
-    x+=dir[0]; y+=dir[1]; if(!isWalkable(x,y)) break; const m=entityAt(x,y); if(m){ m.hp-=dmg; log(`Arrow hits ${m.name} for ${dmg}.`); addEffect(x,y); if(m.hp<=0){ gainXP(m.xp); maybeDrop(m); G.entities=G.entities.filter(e=>e!==m);} break; }
+    x+=dir[0]; y+=dir[1]; if(!isWalkable(x,y)) break; const m=entityAt(x,y); if(m){ m.hp-=dmg; log(`Arrow hits ${m.name} for ${dmg}.`); if(m.hp<=0){ gainXP(m.xp); maybeDrop(m); G.entities=G.entities.filter(e=>e!==m);} break; }
   }
 }
 
@@ -272,7 +270,7 @@ function enemyTurn(){
       const ny = m.y + (Math.abs(dy)>=Math.abs(dx)? sdy : 0);
       if(nx===G.player.x && ny===G.player.y){
         const dmg = Math.max(1, (m.atk||2) - G.player.def);
-        G.player.hp -= dmg; log(`${m.name} hits you for ${dmg}.`); addEffect(G.player.x,G.player.y,'#ff5555');
+        G.player.hp -= dmg; log(`${m.name} hits you for ${dmg}.`);
         if(G.player.hp<=0){ gameOver(); return; }
       } else if(isWalkable(nx,ny) && !entityAt(nx,ny)) { m.x=nx; m.y=ny; }
     } else if(Math.random()<0.3){
@@ -285,7 +283,6 @@ function enemyTurn(){
 function tick(){
   G.turn++;
   if(G.player.abilityCd>0) G.player.abilityCd--;
-  G.effects = G.effects.filter(e=>--e.ttl>0);
   enemyTurn();
   fov();
   updateUI();
