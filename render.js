@@ -81,8 +81,9 @@ function renderInv(){
   G.player.inv.forEach((it, idx)=>{
     const div = document.createElement('div');
     div.className = 'slot';
-    div.innerHTML = `<b>${it.name}</b><br><span class="muted">[${idx+1}] use</span>`;
+    div.innerHTML = `<b>${it.name}</b><br><span class="muted">[${idx+1}] use / shift+${idx+1} drop</span>`;
     div.addEventListener('click', ()=>useItem(idx));
+    div.addEventListener('contextmenu', (e)=>{ e.preventDefault(); discardItem(idx); });
     inv.appendChild(div);
   });
   // pad to 6 slots
@@ -97,6 +98,7 @@ function updateUI(){
   document.getElementById('uiDef').textContent = G.player.def;
   document.getElementById('uiHP').textContent = `${G.player.hp}/${G.player.hpMax}`;
   document.getElementById('uiMP').textContent = `${G.player.mp}/${G.player.mpMax}`;
+  document.getElementById('uiAmmo').textContent = G.player.cls==='hunter'? G.player.ammo : '—';
   document.getElementById('uiGold').textContent = G.gold;
   document.getElementById('uiFloor').textContent = G.floor;
   document.getElementById('uiWeapon').textContent = G.player.weapon? G.player.weapon.name : 'None';
