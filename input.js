@@ -19,7 +19,11 @@ function onKey(e){
   else if(k===' '){ e.preventDefault(); ability(); }
   else if(k==='g'){ pickup(); }
   else if(k==='>'){ descend(); }
-  else if(k>='1'&&k<='9'){ useItem(parseInt(k)-1); }
+  else if(/^Digit[1-9]$/.test(e.code) || /^Numpad[1-9]$/.test(e.code)){
+    const num = parseInt(e.code.slice(-1));
+    if(e.shiftKey) discardItem(num-1);
+    else useItem(num-1);
+  }
 }
 
 function startRun(cls){
@@ -38,7 +42,7 @@ document.getElementById('btnRestart').addEventListener('click', ()=>{
   window.removeEventListener('keydown', onKey);
 });
 document.getElementById('btnHelp').addEventListener('click', ()=>{
-  alert('Move: WASD/Arrows | Wait: . | Attack: F | Ability: Space | Pick up/Open chest: G | Down stairs: >\nInventory: click item or press 1..9');
+  alert('Move: WASD/Arrows | Wait: . | Attack: F | Ability: Space | Pick up/Open chest: G | Down stairs: >\nInventory: click item or press 1..9 to use, Shift+1..9 to drop');
 });
 for(const b of document.querySelectorAll('.classbtn')){
   b.addEventListener('click', ()=> startRun(b.dataset.class));

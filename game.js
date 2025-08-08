@@ -166,6 +166,7 @@ function newPlayer(cls){
     abilityCd: 0, abilityMaxCd: base.abilityCd,
     inv: [],
     weapon: null, armor: null,
+    ammo: base.ammo||0, ammoMax: base.ammoMax||0,
     icon: base.icon || '@'
   }
 }
@@ -222,12 +223,21 @@ async function useItem(i){
   else if(it.type==='mana'){ G.player.mp = Math.min(G.player.mpMax, G.player.mp + (it.mana||5)); log(`Mana restored.`); G.player.inv.splice(i,1); }
   else if(it.type==='bomb'){ log('You throw a bomb!'); aoe(G.player.x, G.player.y, 1, it.dmg); G.player.inv.splice(i,1); await tick(); }
   else if(it.type==='throw'){ log('You throw a dagger!'); await shootLine(it.dmg, 4); G.player.inv.splice(i,1); await tick(); }
+  else if(it.type==='ammo'){ G.player.ammo = Math.min(G.player.ammoMax, G.player.ammo + (it.ammo||0)); log('You replenish arrows.'); G.player.inv.splice(i,1); }
   else if(it.type==='equip'){
     if(it.atk){ if(G.player.weapon) applyEquipStats(G.player.weapon, -1); G.player.weapon = it; }
     else { if(G.player.armor) applyEquipStats(G.player.armor, -1); G.player.armor = it; }
     applyEquipStats(it, 1);
     log(`Equipped ${it.name}.`); G.player.inv.splice(i,1);
   }
+  updateUI();
+}
+
+function discardItem(i){
+  const it = G.player.inv[i]; if(!it) return;
+  G.player.inv.splice(i,1);
+  G.items.push({x:G.player.x, y:G.player.y, item:it});
+  log(`Dropped ${it.name}.`);
   updateUI();
 }
 
@@ -302,8 +312,8 @@ function maybeDrop(mon){
 
 // Ability handlers
 async function ability(){
-  if(G.player.abilityCd>0){ log(`Ability on cooldown (${G.player.abilityCd}).`); return; }
   if(G.player.cls==='warrior'){
+    if(G.player.abilityCd>0){ log(`Ability on cooldown (${G.player.abilityCd}).`); return; }
     log('Whirlwind!');
     await playEffect({type:'whirlwind', x:G.player.x, y:G.player.y, r:TILE_SIZE});
     const tiles=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
@@ -328,11 +338,13 @@ async function ability(){
     await playEffect({type:'fireball', x:tx, y:ty, r:TILE_SIZE*1.5, color:'rgba(255,80,0,0.5)'});
     const dmg = 10 + G.player.lvl;
     aoe(tx, ty, 1, dmg);
-    G.player.abilityCd = G.player.abilityMaxCd; await tick();
+    await tick();
   } else if(G.player.cls==='hunter'){
+    if(G.player.ammo<=0){ log('Out of arrows.'); return; }
+    G.player.ammo--; updateUI();
     log('You shoot an arrow.');
     await shootLine(G.player.atk+2, 5);
-    G.player.abilityCd = G.player.abilityMaxCd; await tick();
+    await tick();
   }
 }
 

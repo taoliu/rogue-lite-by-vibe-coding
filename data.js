@@ -27,7 +27,8 @@ const LOOT = {
     {name:'Potion of Healing', type:'potion', heal:10},
     {name:'Throwing Dagger', type:'throw', dmg:5},
     {name:'Mana Vial', type:'mana', mana:8},
-    {name:'Bomb', type:'bomb', dmg:8}
+    {name:'Bomb', type:'bomb', dmg:8},
+    {name:'Bundle of Arrows', type:'ammo', ammo:5}
   ],
   rare: [
     {name:'Sword +1', type:'equip', atk:+1},
@@ -39,6 +40,6 @@ const LOOT = {
 
 const CLASSES = {
   warrior: { hp: 30, mp: 0, atk: 5, def: 2, abilityCd: 5, icon:'⚔️' },
-  mage:    { hp: 18, mp: 20, atk: 2, def: 1, abilityCd: 5, icon:'🧙' },
-  hunter:  { hp: 24, mp: 8,  atk: 3, def: 1, abilityCd: 4, icon:'🏹' }
+  mage:    { hp: 18, mp: 20, atk: 2, def: 1, abilityCd: 0, icon:'🧙' },
+  hunter:  { hp: 24, mp: 8,  atk: 3, def: 1, abilityCd: 0, icon:'🏹', ammo: 10, ammoMax: 10 }
 };
