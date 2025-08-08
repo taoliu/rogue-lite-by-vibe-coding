@@ -1,6 +1,9 @@
 // --- Rendering and UI ---
 const canvas = document.getElementById('view');
 const ctx = canvas.getContext('2d');
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.font = '20px sans-serif';
 
 function rect(x,y,w,h,col){ ctx.fillStyle=col; ctx.fillRect(x,y,w,h); }
 
@@ -23,28 +26,15 @@ function render(){
   // items
   for(const it of G.items){ if(!G.seen[it.y][it.x]) continue; ctx.fillStyle = '#ffd166'; ctx.fillRect(it.x*TILE_SIZE+10, it.y*TILE_SIZE+10, 4,4); }
   // entities (monsters)
+  ctx.fillStyle = '#fff';
   for(const e of G.entities){
     if(!G.seen[e.y][e.x]) continue;
     const px=e.x*TILE_SIZE+TILE_SIZE/2, py=e.y*TILE_SIZE+TILE_SIZE/2;
-    ctx.fillStyle=e.color||'#76e6ff';
-    ctx.beginPath(); ctx.arc(px,py,TILE_SIZE/2-3,0,Math.PI*2); ctx.fill();
+    ctx.fillText(e.icon || e.ch || '?', px, py);
   }
   // player
   const px=G.player.x*TILE_SIZE+TILE_SIZE/2, py=G.player.y*TILE_SIZE+TILE_SIZE/2;
-  ctx.fillStyle = '#2dd4bf';
-  ctx.beginPath(); ctx.arc(px,py,TILE_SIZE/2-3,0,Math.PI*2); ctx.fill();
-
-  // attack effects
-  ctx.lineWidth=2;
-  for(const fx of G.effects){
-    const ex=fx.x*TILE_SIZE, ey=fx.y*TILE_SIZE;
-    ctx.strokeStyle=fx.color;
-    ctx.beginPath();
-    ctx.moveTo(ex,ey); ctx.lineTo(ex+TILE_SIZE,ey+TILE_SIZE);
-    ctx.moveTo(ex+TILE_SIZE,ey); ctx.lineTo(ex,ey+TILE_SIZE);
-    ctx.stroke();
-  }
-  ctx.lineWidth=1;
+  ctx.fillText(G.player.icon || '@', px, py);
 }
 
 function renderInv(){
