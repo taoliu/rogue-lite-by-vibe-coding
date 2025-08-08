@@ -26,6 +26,17 @@ function between(v,min,max){return v>=min && v<=max}
 
 function addEffect(fx){ G.effects.push(fx); }
 
+function findClosestMonster(){
+  let closest=null, dist=Infinity;
+  for(const m of G.entities){
+    if(m.type==='monster' || m.type==='boss'){
+      const d=Math.hypot(m.x-G.player.x, m.y-G.player.y);
+      if(d<dist){ dist=d; closest=m; }
+    }
+  }
+  return closest;
+}
+
 // play an animated effect and resolve when finished
 function playEffect(fx, duration=300){
   fx.duration = duration;
@@ -139,6 +150,9 @@ function genMap() {
   G.items=[];
   for(let i=0;i<6;i++) placeGroundItem();
 
+  if(G.floor===8) placeMerchant();
+  if(G.floor===10) placeBoss();
+
   // position player at maze start
   G.player.x=1; G.player.y=1;
   fov();
@@ -152,6 +166,22 @@ function placeGroundItem(){
   const pool = isRare? LOOT.rare : LOOT.common;
   const item = JSON.parse(JSON.stringify(pool[(Math.random()*pool.length)|0]));
   G.items.push({x:ix, y:iy, item});
+}
+
+function placeMerchant(){
+  const {rand}=G.rng, w=MAP_W, h=MAP_H;
+  let mx=0,my=0,tries=0;
+  do{ mx=(rand()*w)|0; my=(rand()*h)|0; tries++; } while(G.map[my][mx]!==T.FLOOR && tries<1000);
+  const stock = MERCHANT_ITEMS.map(it=>JSON.parse(JSON.stringify(it)));
+  G.entities.push({type:'merchant', name:'Merchant', icon:'💰', x:mx, y:my, stock});
+}
+
+function placeBoss(){
+  const {rand}=G.rng, w=MAP_W, h=MAP_H;
+  let bx=0,by=0,tries=0;
+  do{ bx=(rand()*w)|0; by=(rand()*h)|0; tries++; } while(G.map[by][bx]!==T.FLOOR && tries<1000);
+  const b = JSON.parse(JSON.stringify(BOSS));
+  G.entities.push({type:'boss', x:bx, y:by, ...b, hp:b.hp, hpMax:b.hp, mp:b.mp, mpMax:b.mp});
 }
 
 // --- Player setup and inventory ---
@@ -195,6 +225,24 @@ function openChest(){
     log(`You open the chest and find ${item.name} and ${gold} gold!`);
   }
   renderInv(); updateUI(); render();
+}
+
+function openShop(m){
+  if(!m.stock || !m.stock.length){ log('The merchant has nothing left to sell.'); return; }
+  const opts = m.stock.map((s,i)=>`${i+1}) ${s.name} - ${s.cost}g`).join('\n');
+  const choice = prompt(`Welcome, traveler! What would you like to buy?\n${opts}`);
+  const idx = parseInt(choice)-1;
+  if(isNaN(idx) || idx<0 || idx>=m.stock.length) return;
+  const offer = m.stock[idx];
+  if(G.gold < offer.cost){ log('Not enough gold.'); return; }
+  if(G.player.inv.length >= 9){ log('Inventory full.'); return; }
+  G.gold -= offer.cost;
+  const item = JSON.parse(JSON.stringify(offer));
+  delete item.cost;
+  G.player.inv.push(item);
+  m.stock.splice(idx,1);
+  log(`You purchase ${offer.name}.`);
+  renderInv(); updateUI();
 }
 
 function pickup(){
@@ -271,6 +319,7 @@ function move(dx,dy){
   if(!isWalkable(nx,ny)){ log('You bump into a wall.'); return; }
   const m = entityAt(nx,ny);
   if(m){
+    if(m.type==='merchant'){ openShop(m); return; }
     // attack melee
     const dmg = Math.max(1, G.player.atk - (m.def||0));
     m.hp -= dmg; log(`You hit the ${m.name} for ${dmg}.`);
@@ -303,7 +352,11 @@ function move(dx,dy){
 function wait(){ log('You wait.'); tick(); }
 
 function maybeDrop(mon){
-  // gold or item
+  if(mon.type==='boss'){
+    log('The boss drops a brilliant crystal. You have won!');
+    winGame();
+    return;
+  }
   if(Math.random()<0.7){ const g = (Math.random()*8+2)|0; G.gold+=g; log(`You loot ${g} gold.`); }
   if(Math.random()<0.35){ G.items.push({x:mon.x, y:mon.y, item: JSON.parse(JSON.stringify(LOOT.common[(Math.random()*LOOT.common.length)|0]))}); }
   if(Math.random()<0.12){ G.items.push({x:mon.x, y:mon.y, item: JSON.parse(JSON.stringify(LOOT.rare[(Math.random()*LOOT.rare.length)|0]))}); }
@@ -328,22 +381,27 @@ async function ability(){
     await tick();
   } else if(G.player.cls==='mage'){
     if(G.player.mp<6){ log('Not enough mana.'); return; }
+    const target = findClosestMonster();
+    if(!target){ log('No target.'); return; }
+    if(!hasLineOfSight(G.player.x,G.player.y,target.x,target.y)){ log('No clear path.'); return; }
     log('Fireball!');
     G.player.mp-=6; updateUI();
-    const dir = G.lastDir || [0,-1];
-    const tx = G.player.x + dir[0];
-    const ty = G.player.y + dir[1];
-    if(!isWalkable(tx,ty)){ log('No clear path.'); return; }
-    await playEffect({type:'arrow', x1:G.player.x, y1:G.player.y, x2:tx, y2:ty, color:'orange', icon:'🔥'});
-    await playEffect({type:'fireball', x:tx, y:ty, r:TILE_SIZE*1.5, color:'rgba(255,80,0,0.5)'});
+    await playEffect({type:'arrow', x1:G.player.x, y1:G.player.y, x2:target.x, y2:target.y, color:'orange', icon:'🔥'});
+    await playEffect({type:'fireball', x:target.x, y:target.y, r:TILE_SIZE*1.5, color:'rgba(255,80,0,0.5)'});
     const dmg = 10 + G.player.lvl;
-    aoe(tx, ty, 1, dmg);
+    aoe(target.x, target.y, 1, dmg);
     await tick();
   } else if(G.player.cls==='hunter'){
     if(G.player.ammo<=0){ log('Out of arrows.'); return; }
+    const target = findClosestMonster();
+    if(!target){ log('No target.'); return; }
+    if(!hasLineOfSight(G.player.x,G.player.y,target.x,target.y)){ log('No clear shot.'); return; }
     G.player.ammo--; updateUI();
     log('You shoot an arrow.');
-    await shootLine(G.player.atk+2, 5);
+    await playEffect({type:'arrow', x1:G.player.x, y1:G.player.y, x2:target.x, y2:target.y, color:'rgba(255,255,255,0.6)'});
+    const dmg = G.player.atk+2;
+    target.hp-=dmg; log(`Arrow hits ${target.name} for ${dmg}.`);
+    if(target.hp<=0){ gainXP(target.xp); maybeDrop(target); G.entities=G.entities.filter(e=>e!==target); }
     await tick();
   }
 }
@@ -380,11 +438,12 @@ async function shootLine(dmg, range){
 function descend(){
   if(G.map[G.player.y][G.player.x]!==T.STAIRS){ log('No stairs here.'); return; }
   G.floor++; log(`You descend to floor ${G.floor}.`);
-  genMap(); updateUI();
+  genMap(); updateUI(); render();
 }
 
 async function enemyTurn(){
   for(const m of G.entities){
+    if(m.type==='merchant') continue;
     for(let step=0; step<(m.speed||1); step++){
       const dx = G.player.x - m.x; const dy = G.player.y - m.y; const dist = Math.hypot(dx,dy);
       if(m.attack==='ranged' && dist <= (m.range||4) && hasLineOfSight(m.x,m.y,G.player.x,G.player.y)){
@@ -431,5 +490,10 @@ async function tick(){
 
 function gameOver(){
   log('*** You died. Press "New Run" to try again.');
+  window.removeEventListener('keydown', onKey);
+}
+
+function winGame(){
+  log('*** You secure the crystal and win the game!');
   window.removeEventListener('keydown', onKey);
 }
