@@ -5,13 +5,13 @@ const MAP_W = 40, MAP_H = 30; // 40x30 -> 960x720 canvas
 
 // Monsters (D&D-ish)
 const MONSTERS = [
-  {name:'Goblin', ch:'g', hp:6, atk:2, xp:4},
-  {name:'Skeleton', ch:'s', hp:8, atk:3, xp:6},
-  {name:'Orc', ch:'o', hp:12, atk:4, xp:10},
-  {name:'Zombie', ch:'z', hp:14, atk:3, xp:10},
-  {name:'Mimic', ch:'m', hp:10, atk:5, xp:12},
-  {name:'Ogre', ch:'O', hp:18, atk:6, xp:18},
-  {name:'Young Dragon', ch:'D', hp:28, atk:8, xp:30}
+  {name:'Goblin', ch:'g', hp:6, atk:2, xp:4, color:'#22c55e'},
+  {name:'Skeleton', ch:'s', hp:8, atk:3, xp:6, color:'#d4d4d8'},
+  {name:'Orc', ch:'o', hp:12, atk:4, xp:10, color:'#f97316'},
+  {name:'Zombie', ch:'z', hp:14, atk:3, xp:10, color:'#4ade80'},
+  {name:'Mimic', ch:'m', hp:10, atk:5, xp:12, color:'#c084fc'},
+  {name:'Ogre', ch:'O', hp:18, atk:6, xp:18, color:'#a16207'},
+  {name:'Young Dragon', ch:'D', hp:28, atk:8, xp:30, color:'#ef4444'}
 ];
 
 const LOOT = {

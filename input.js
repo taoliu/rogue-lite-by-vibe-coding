@@ -6,7 +6,13 @@ function onKey(e){
   else if(['arrowleft','a'].includes(k)){ move(-1,0); G.lastDir=[-1,0]; }
   else if(['arrowright','d'].includes(k)){ move(1,0); G.lastDir=[1,0]; }
   else if(k==='f'){ // melee in facing dir
-    const d=G.lastDir||[0,-1]; const m=entityAt(G.player.x+d[0], G.player.y+d[1]); if(m){ const dmg=Math.max(1, G.player.atk-(m.def||0)); m.hp-=dmg; log(`You strike the ${m.name} for ${dmg}.`); if(m.hp<=0){ gainXP(m.xp); maybeDrop(m); G.entities=G.entities.filter(e=>e!==m);} tick(); } else log('No enemy to strike.');
+    const d=G.lastDir||[0,-1];
+    const m=entityAt(G.player.x+d[0], G.player.y+d[1]);
+    if(m){
+      const dmg=Math.max(1, G.player.atk-(m.def||0));
+      m.hp-=dmg; log(`You strike the ${m.name} for ${dmg}.`); addEffect(G.player.x+d[0], G.player.y+d[1]);
+      if(m.hp<=0){ gainXP(m.xp); maybeDrop(m); G.entities=G.entities.filter(e=>e!==m);} tick();
+    } else log('No enemy to strike.');
   }
   else if(k==='.' || k==='5') wait();
   else if(k===' '){ e.preventDefault(); ability(); }
@@ -31,7 +37,7 @@ document.getElementById('btnRestart').addEventListener('click', ()=>{
   window.removeEventListener('keydown', onKey);
 });
 document.getElementById('btnHelp').addEventListener('click', ()=>{
-  alert('Move: WASD/Arrows | Wait: . | Attack: F | Ability: Space | Pick up: G | Down stairs: >\nInventory: click item or press 1..9');
+  alert('Move: WASD/Arrows | Wait: . | Attack: F | Ability: Space | Pick up/Open chest: G | Down stairs: >\nInventory: click item or press 1..9');
 });
 for(const b of document.querySelectorAll('.classbtn')){
   b.addEventListener('click', ()=> startRun(b.dataset.class));
