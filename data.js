@@ -28,7 +28,7 @@ const LOOT = {
     {name:'Throwing Dagger', type:'throw', dmg:5},
     {name:'Mana Vial', type:'mana', mana:8},
     {name:'Bomb', type:'bomb', dmg:8},
-    {name:'Bundle of Arrows', type:'ammo', ammo:5}
+    {name:'Bundle of Arrows', type:'ammo', ammo:20}
   ],
   rare: [
     {name:'Sword +1', type:'equip', atk:+1},
@@ -52,5 +52,5 @@ const BOSS = {name:'Crystal Guardian', icon:'💠', hp:40, atk:9, mp:6, speed:1,
 const CLASSES = {
   warrior: { hp: 30, mp: 0, atk: 5, def: 2, abilityCd: 5, icon:'⚔️' },
   mage:    { hp: 18, mp: 20, atk: 2, def: 1, abilityCd: 0, icon:'🧙' },
-  hunter:  { hp: 24, mp: 8,  atk: 3, def: 1, abilityCd: 0, icon:'🏹', ammo: 10, ammoMax: 10 }
+  hunter:  { hp: 24, mp: 8,  atk: 3, def: 1, abilityCd: 0, icon:'🏹', ammo: 40, ammoMax: 40 }
 };

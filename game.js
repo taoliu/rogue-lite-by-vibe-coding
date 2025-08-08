@@ -100,10 +100,14 @@ function genMap() {
     for(let y=ry;y<ry+rh;y++) for(let x=rx;x<rx+rw;x++) map[y][x]=T.FLOOR;
   }
 
-  // place stairs far from start corner
-  let sx=0, sy=0, tries=0;
-  do { sx=(rand()*w)|0; sy=(rand()*h)|0; tries++; } while((map[sy][sx]!==T.FLOOR || Math.hypot(sx-1, sy-1)<Math.min(w,h)/3) && tries<5e3);
-  map[sy][sx]=T.STAIRS;
+  // place stairs far from start corner unless on final floor
+  if(G.floor < 5){
+    let sx=0, sy=0, tries=0;
+    do {
+      sx=(rand()*w)|0; sy=(rand()*h)|0; tries++;
+    } while((map[sy][sx]!==T.FLOOR || Math.hypot(sx-1, sy-1)<Math.min(w,h)/3) && tries<5e3);
+    map[sy][sx]=T.STAIRS;
+  }
 
   // sprinkle chests, more on deeper floors
   for(let i=0;i<8+G.floor;i++){
@@ -152,8 +156,8 @@ function genMap() {
   G.items=[];
   for(let i=0;i<6;i++) placeGroundItem();
 
-  if(G.floor===8) placeMerchant();
-  if(G.floor===10) placeBoss();
+  if(G.floor===4) placeMerchant();
+  if(G.floor===5) placeBoss();
 
   // position player at maze start
   G.player.x=1; G.player.y=1;
@@ -207,7 +211,15 @@ function gainXP(x){
   G.player.xp += x; log(`You gain ${x} XP.`);
   while(G.player.xp >= G.player.nextXp){
     G.player.xp -= G.player.nextXp; G.player.lvl++; G.player.nextXp = Math.floor(G.player.nextXp*1.5);
-    G.player.hpMax += 5; G.player.atk += 1; G.player.hp = G.player.hpMax;
+    if(G.player.cls==='warrior'){
+      G.player.hpMax += 8;
+      G.player.atk += 2;
+      G.player.def += 1;
+    } else {
+      G.player.hpMax += 5;
+      G.player.atk += 1;
+    }
+    G.player.hp = G.player.hpMax;
     log(`== Level up! You are now level ${G.player.lvl}.`);
   }
 }
