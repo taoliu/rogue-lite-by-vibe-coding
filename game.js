@@ -22,54 +22,69 @@ function log(msg){
 
 function between(v,min,max){return v>=min && v<=max}
 
-// --- Map generation: drunkard walk rooms + sprinkled walls ---
+// --- Map generation: depth-first maze with rooms ---
 function genMap() {
   const {rand} = G.rng;
   const w=MAP_W,h=MAP_H;
   const map = Array.from({length:h},()=>Array(w).fill(T.WALL));
   const seen= Array.from({length:h},()=>Array(w).fill(false));
 
-  // open up with random walk
-  let x = (w/2)|0, y = (h/2)|0; map[y][x]=T.FLOOR;
-  let floors = 1, target = (w*h*0.45)|0; // carve ~45% floors
   const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
-  while(floors<target){
-    const [dx,dy]=dirs[(rand()*4)|0];
-    x = Math.max(1, Math.min(w-2, x+dx));
-    y = Math.max(1, Math.min(h-2, y+dy));
-    if(map[y][x]===T.WALL){ map[y][x]=T.FLOOR; floors++; }
-    // occasionally carve neighbors to make rooms
-    if(rand()<0.18){
-      for(const [ax,ay] of dirs){
-        const nx=x+ax, ny=y+ay; if(nx>1&&ny>1&&nx<w-2&&ny<h-2){ map[ny][nx]=T.FLOOR; }
-      }
+  function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=(rand()*(i+1))|0; [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+  // carve maze using depth-first search (recursive backtracker)
+  const stack=[[1,1]]; map[1][1]=T.FLOOR;
+  while(stack.length){
+    const [cx,cy]=stack[stack.length-1];
+    const neigh=[];
+    for(const [dx,dy] of dirs){
+      const nx=cx+dx*2, ny=cy+dy*2;
+      if(nx>0&&ny>0&&nx<w-1&&ny<h-1 && map[ny][nx]===T.WALL){ neigh.push([dx,dy]); }
+    }
+    if(neigh.length){
+      const [dx,dy]=shuffle(neigh)[0];
+      map[cy+dy][cx+dx]=T.FLOOR;
+      map[cy+dy*2][cx+dx*2]=T.FLOOR;
+      stack.push([cx+dx*2, cy+dy*2]);
+    } else {
+      stack.pop();
     }
   }
 
-  // place stairs far from center
+  // add random rectangular rooms for variety
+  const roomAttempts = 4 + G.floor;
+  for(let i=0;i<roomAttempts;i++){
+    const rw=3+((rand()*6)|0); const rh=3+((rand()*6)|0);
+    const rx=1+((rand()*(w-rw-2))|0); const ry=1+((rand()*(h-rh-2))|0);
+    for(let y=ry;y<ry+rh;y++) for(let x=rx;x<rx+rw;x++) map[y][x]=T.FLOOR;
+  }
+
+  // place stairs far from start corner
   let sx=0, sy=0, tries=0;
-  do { sx=(rand()*w)|0; sy=(rand()*h)|0; tries++; } while((map[sy][sx]!==T.FLOOR || Math.hypot(sx-w/2, sy-h/2)<Math.min(w,h)/3) && tries<5e3);
+  do { sx=(rand()*w)|0; sy=(rand()*h)|0; tries++; } while((map[sy][sx]!==T.FLOOR || Math.hypot(sx-1, sy-1)<Math.min(w,h)/3) && tries<5e3);
   map[sy][sx]=T.STAIRS;
 
-  // sprinkle chests
-  for(let i=0;i<10;i++){
+  // sprinkle chests, more on deeper floors
+  for(let i=0;i<8+G.floor;i++){
     const cx=(rand()*w)|0, cy=(rand()*h)|0; if(map[cy][cx]===T.FLOOR) map[cy][cx]=T.CHEST;
   }
 
   G.map = map; G.seen = seen;
 
-  // place monsters
+  // place monsters with scaling difficulty
   G.entities=[];
-  const monsCount = 10 + (G.floor*2);
+  const monsCount = 8 + (G.floor*3);
   let placed=0; let safety=0;
   while(placed<monsCount && safety<5000){
     safety++;
     const mx=(rand()*w)|0, my=(rand()*h)|0; if(map[my][mx]!==T.FLOOR) continue;
-    // avoid center spawn area (for player)
-    if(Math.hypot(mx-w/2,my-h/2) < 6) continue;
+    if(mx===1 && my===1) continue; // don't spawn on player
     const tier = Math.min(MONSTERS.length-1, 2 + ((rand()*G.floor)|0));
     const base = MONSTERS[(rand()*(tier+1))|0];
-    G.entities.push({type:'monster', x:mx, y:my, ...JSON.parse(JSON.stringify(base)), hpMax: base.hp});
+    const scale = 1 + (G.floor-1)*0.15;
+    const mHp = Math.round(base.hp * scale);
+    const mAtk = Math.max(1, Math.round((base.atk||2) * scale));
+    G.entities.push({type:'monster', x:mx, y:my, ...JSON.parse(JSON.stringify(base)), hp: mHp, hpMax: mHp, atk: mAtk});
     placed++;
   }
 
@@ -77,9 +92,8 @@ function genMap() {
   G.items=[];
   for(let i=0;i<6;i++) placeGroundItem();
 
-  // position player near center
-  let px=(w/2)|0, py=(h/2)|0; while(map[py][px]!==T.FLOOR){ px++; }
-  G.player.x=px; G.player.y=py;
+  // position player at maze start
+  G.player.x=1; G.player.y=1;
   fov();
 }
 
