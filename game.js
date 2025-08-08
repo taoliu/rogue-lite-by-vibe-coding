@@ -10,7 +10,8 @@ const G = {
   turn: 0,
   cooldown: 0,
   gold: 0,
-  messages: []
+  messages: [],
+  effects: [] // transient visual effects
 };
 
 function log(msg){
@@ -117,13 +118,36 @@ function gainXP(x){
   }
 }
 
+function openChest(){
+  if(G.map[G.player.y][G.player.x]!==T.CHEST){ log('No chest here.'); return; }
+  G.map[G.player.y][G.player.x]=T.FLOOR;
+  const isRare = Math.random()<0.5;
+  const pool = isRare? LOOT.rare : LOOT.common;
+  const item = JSON.parse(JSON.stringify(pool[(Math.random()*pool.length)|0]));
+  G.player.inv.push(item);
+  const gold = (Math.random()*20+10)|0;
+  G.gold += gold;
+  log(`You open the chest and find ${item.name} and ${gold} gold!`);
+  renderInv(); updateUI(); render();
+}
+
 function pickup(){
+  if(G.map[G.player.y][G.player.x]===T.CHEST){ openChest(); return; }
   const here = G.items.findIndex(it=>it.x===G.player.x && it.y===G.player.y);
   if(here===-1){ log('Nothing to pick up.'); return; }
   const obj = G.items.splice(here,1)[0].item;
   G.player.inv.push(obj);
   log(`Picked up ${obj.name}.`);
   renderInv();
+}
+
+function applyEquipStats(it, sign){
+  if(it.hp){ G.player.hpMax += sign*it.hp; if(sign>0) G.player.hp += it.hp; }
+  if(it.mp){ G.player.mpMax += sign*it.mp; if(sign>0) G.player.mp += it.mp; }
+  if(it.atk) G.player.atk += sign*it.atk;
+  if(it.def) G.player.def += sign*it.def;
+  G.player.hp = Math.min(G.player.hp, G.player.hpMax);
+  G.player.mp = Math.min(G.player.mp, G.player.mpMax);
 }
 
 function useItem(i){
@@ -133,10 +157,9 @@ function useItem(i){
   else if(it.type==='bomb'){ log('You throw a bomb!'); aoe(G.player.x, G.player.y, 1, it.dmg); G.player.inv.splice(i,1); tick(); }
   else if(it.type==='throw'){ log('You throw a dagger!'); shootLine(it.dmg, 4); G.player.inv.splice(i,1); tick(); }
   else if(it.type==='equip'){
-    if(it.hp) G.player.hpMax += it.hp;
-    if(it.mp) G.player.mpMax += it.mp;
-    if(it.atk) G.player.atk += it.atk;
-    if(it.def) G.player.def += it.def;
+    if(it.atk){ if(G.player.weapon) applyEquipStats(G.player.weapon, -1); G.player.weapon = it; }
+    else { if(G.player.armor) applyEquipStats(G.player.armor, -1); G.player.armor = it; }
+    applyEquipStats(it, 1);
     log(`Equipped ${it.name}.`); G.player.inv.splice(i,1);
   }
   updateUI();
@@ -154,6 +177,7 @@ function fov(){
 // --- Movement & Combat ---
 function isWalkable(x,y){ return between(x,0,MAP_W-1) && between(y,0,MAP_H-1) && G.map[y][x]!==T.WALL; }
 function entityAt(x,y){ return G.entities.find(e=>e.x===x&&e.y===y); }
+function addEffect(x,y,color='#ff0000'){ G.effects.push({x,y,color,ttl:2}); }
 
 function move(dx,dy){
   const nx=G.player.x+dx, ny=G.player.y+dy;
@@ -162,7 +186,7 @@ function move(dx,dy){
   if(m){
     // attack melee
     const dmg = Math.max(1, G.player.atk - (m.def||0));
-    m.hp -= dmg; log(`You hit the ${m.name} for ${dmg}.`);
+    m.hp -= dmg; log(`You hit the ${m.name} for ${dmg}.`); addEffect(nx,ny);
     if(m.hp<=0){
       log(`The ${m.name} dies.`);
       gainXP(m.xp);
@@ -191,7 +215,13 @@ function ability(){
   if(G.player.cls==='warrior'){
     log('Whirlwind!');
     const tiles=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
-    for(const [dx,dy] of tiles){ const m=entityAt(G.player.x+dx, G.player.y+dy); if(m){ const dmg = Math.max(1, G.player.atk+1-(m.def||0)); m.hp-=dmg; log(`Whirlwind hits ${m.name} for ${dmg}.`); if(m.hp<=0){ gainXP(m.xp); maybeDrop(m); G.entities=G.entities.filter(e=>e!==m);} } }
+    for(const [dx,dy] of tiles){
+      const m=entityAt(G.player.x+dx, G.player.y+dy);
+      if(m){
+        const dmg = Math.max(1, G.player.atk+1-(m.def||0));
+        m.hp-=dmg; log(`Whirlwind hits ${m.name} for ${dmg}.`); addEffect(G.player.x+dx,G.player.y+dy);
+        if(m.hp<=0){ gainXP(m.xp); maybeDrop(m); G.entities=G.entities.filter(e=>e!==m);} }
+    }
     G.player.abilityCd = G.player.abilityMaxCd;
     tick();
   } else if(G.player.cls==='mage'){
@@ -210,7 +240,10 @@ function ability(){
 
 function aoe(cx,cy,r,dmg){
   for(const e of [...G.entities]){
-    if(Math.hypot(e.x-cx,e.y-cy)<=r){ e.hp-=dmg; log(`${e.name} takes ${dmg} damage.`); if(e.hp<=0){ gainXP(e.xp); maybeDrop(e); G.entities=G.entities.filter(x=>x!==e); } }
+    if(Math.hypot(e.x-cx,e.y-cy)<=r){
+      e.hp-=dmg; log(`${e.name} takes ${dmg} damage.`); addEffect(e.x,e.y);
+      if(e.hp<=0){ gainXP(e.xp); maybeDrop(e); G.entities=G.entities.filter(x=>x!==e); }
+    }
   }
 }
 
@@ -219,7 +252,7 @@ function shootLine(dmg, range){
   const dir = G.lastDir || [0,-1];
   let [x,y]=[G.player.x, G.player.y];
   for(let i=0;i<range;i++){
-    x+=dir[0]; y+=dir[1]; if(!isWalkable(x,y)) break; const m=entityAt(x,y); if(m){ m.hp-=dmg; log(`Arrow hits ${m.name} for ${dmg}.`); if(m.hp<=0){ gainXP(m.xp); maybeDrop(m); G.entities=G.entities.filter(e=>e!==m);} break; }
+    x+=dir[0]; y+=dir[1]; if(!isWalkable(x,y)) break; const m=entityAt(x,y); if(m){ m.hp-=dmg; log(`Arrow hits ${m.name} for ${dmg}.`); addEffect(x,y); if(m.hp<=0){ gainXP(m.xp); maybeDrop(m); G.entities=G.entities.filter(e=>e!==m);} break; }
   }
 }
 
@@ -239,7 +272,7 @@ function enemyTurn(){
       const ny = m.y + (Math.abs(dy)>=Math.abs(dx)? sdy : 0);
       if(nx===G.player.x && ny===G.player.y){
         const dmg = Math.max(1, (m.atk||2) - G.player.def);
-        G.player.hp -= dmg; log(`${m.name} hits you for ${dmg}.`);
+        G.player.hp -= dmg; log(`${m.name} hits you for ${dmg}.`); addEffect(G.player.x,G.player.y,'#ff5555');
         if(G.player.hp<=0){ gameOver(); return; }
       } else if(isWalkable(nx,ny) && !entityAt(nx,ny)) { m.x=nx; m.y=ny; }
     } else if(Math.random()<0.3){
@@ -252,6 +285,7 @@ function enemyTurn(){
 function tick(){
   G.turn++;
   if(G.player.abilityCd>0) G.player.abilityCd--;
+  G.effects = G.effects.filter(e=>--e.ttl>0);
   enemyTurn();
   fov();
   updateUI();

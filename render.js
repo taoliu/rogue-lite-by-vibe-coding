@@ -22,10 +22,29 @@ function render(){
   }
   // items
   for(const it of G.items){ if(!G.seen[it.y][it.x]) continue; ctx.fillStyle = '#ffd166'; ctx.fillRect(it.x*TILE_SIZE+10, it.y*TILE_SIZE+10, 4,4); }
-  // entities
-  for(const e of G.entities){ if(!G.seen[e.y][e.x]) continue; ctx.fillStyle='#76e6ff'; ctx.fillRect(e.x*TILE_SIZE+6,e.y*TILE_SIZE+6,12,12); ctx.fillStyle='#fff'; ctx.font='12px monospace'; ctx.fillText(e.ch, e.x*TILE_SIZE+8, e.y*TILE_SIZE+16); }
+  // entities (monsters)
+  for(const e of G.entities){
+    if(!G.seen[e.y][e.x]) continue;
+    const px=e.x*TILE_SIZE+TILE_SIZE/2, py=e.y*TILE_SIZE+TILE_SIZE/2;
+    ctx.fillStyle=e.color||'#76e6ff';
+    ctx.beginPath(); ctx.arc(px,py,TILE_SIZE/2-3,0,Math.PI*2); ctx.fill();
+  }
   // player
-  ctx.fillStyle = '#2dd4bf'; ctx.fillRect(G.player.x*TILE_SIZE+6, G.player.y*TILE_SIZE+6, 12, 12);
+  const px=G.player.x*TILE_SIZE+TILE_SIZE/2, py=G.player.y*TILE_SIZE+TILE_SIZE/2;
+  ctx.fillStyle = '#2dd4bf';
+  ctx.beginPath(); ctx.arc(px,py,TILE_SIZE/2-3,0,Math.PI*2); ctx.fill();
+
+  // attack effects
+  ctx.lineWidth=2;
+  for(const fx of G.effects){
+    const ex=fx.x*TILE_SIZE, ey=fx.y*TILE_SIZE;
+    ctx.strokeStyle=fx.color;
+    ctx.beginPath();
+    ctx.moveTo(ex,ey); ctx.lineTo(ex+TILE_SIZE,ey+TILE_SIZE);
+    ctx.moveTo(ex+TILE_SIZE,ey); ctx.lineTo(ex,ey+TILE_SIZE);
+    ctx.stroke();
+  }
+  ctx.lineWidth=1;
 }
 
 function renderInv(){
@@ -52,6 +71,8 @@ function updateUI(){
   document.getElementById('uiMP').textContent = `${G.player.mp}/${G.player.mpMax}`;
   document.getElementById('uiGold').textContent = G.gold;
   document.getElementById('uiFloor').textContent = G.floor;
+  document.getElementById('uiWeapon').textContent = G.player.weapon? G.player.weapon.name : 'None';
+  document.getElementById('uiArmor').textContent = G.player.armor? G.player.armor.name : 'None';
   document.getElementById('barHP').style.width = `${Math.max(0, (G.player.hp/G.player.hpMax)*100)}%`;
   document.getElementById('barMP').style.width = `${G.player.mpMax? (G.player.mp/G.player.mpMax)*100 : 0}%`;
   renderInv();
