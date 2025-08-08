@@ -12,7 +12,9 @@ const G = {
   gold: 0,
   messages: [],
   effects: [],
-  animating: 0
+  animating: 0,
+  killCounts: {},
+  win: false
 };
 
 function log(msg){
@@ -352,6 +354,7 @@ function move(dx,dy){
 function wait(){ log('You wait.'); tick(); }
 
 function maybeDrop(mon){
+  G.killCounts[mon.name] = (G.killCounts[mon.name] || 0) + 1;
   if(mon.type==='boss'){
     log('The boss drops a brilliant crystal. You have won!');
     winGame();
@@ -496,4 +499,48 @@ function gameOver(){
 function winGame(){
   log('*** You secure the crystal and win the game!');
   window.removeEventListener('keydown', onKey);
+  G.win = true;
+  showWinScreen();
+  launchFireworks();
+}
+
+function launchFireworks(){
+  const spawn=()=>{
+    if(!G.win) return;
+    const x=(Math.random()*MAP_W)|0;
+    const y=(Math.random()*MAP_H)|0;
+    const color=`hsl(${(Math.random()*360)|0},100%,70%)`;
+    playEffect({type:'firework',x,y,color,r:TILE_SIZE*2},700);
+    setTimeout(spawn,500+Math.random()*500);
+  };
+  spawn();
+}
+
+function showWinScreen(){
+  const modal=document.createElement('div');
+  modal.id='winModal';
+  modal.className='modal';
+  modal.style.background='rgba(0,0,0,0.5)';
+  const card=document.createElement('div');
+  card.className='card';
+  card.innerHTML='<h2>Victory!</h2><p>You recovered the crystal!</p>';
+  const stats=document.createElement('div');
+  stats.innerHTML='<h3>Monster Kills</h3>';
+  const list=document.createElement('div');
+  const entries=Object.entries(G.killCounts);
+  if(entries.length){
+    for(const [name,count] of entries){
+      const row=document.createElement('div');
+      row.textContent=`${name}: ${count}`;
+      list.appendChild(row);
+    }
+  } else {
+    const row=document.createElement('div');
+    row.textContent='None';
+    list.appendChild(row);
+  }
+  stats.appendChild(list);
+  card.appendChild(stats);
+  modal.appendChild(card);
+  document.body.appendChild(modal);
 }
