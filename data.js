@@ -1,17 +1,25 @@
 // --- Game Constants ---
-const T = { WALL: 1, FLOOR: 0, STAIRS: 2, CHEST: 3 };
+const T = {
+  WALL: 1,
+  FLOOR: 0,
+  STAIRS: 2,
+  CHEST: 3,
+  WATER: 4,
+  FOUNTAIN: 5,
+  TRAP: 6
+};
 const TILE_SIZE = 24; // pixels per tile
 const MAP_W = 40, MAP_H = 30; // 40x30 -> 960x720 canvas
 
 // Monsters (D&D-ish)
 const MONSTERS = [
-  {name:'Goblin', icon:'👺', hp:6, atk:2, xp:4},
-  {name:'Skeleton', icon:'💀', hp:8, atk:3, xp:6},
-  {name:'Orc', icon:'👹', hp:12, atk:4, xp:10},
-  {name:'Zombie', icon:'🧟', hp:14, atk:3, xp:10},
-  {name:'Mimic', icon:'📦', hp:10, atk:5, xp:12},
-  {name:'Ogre', icon:'🧌', hp:18, atk:6, xp:18},
-  {name:'Young Dragon', icon:'🐉', hp:28, atk:8, xp:30}
+  {name:'Goblin', icon:'👺', hp:6, atk:2, mp:0, speed:2, attack:'melee', xp:4},
+  {name:'Skeleton Archer', icon:'🏹', hp:8, atk:3, mp:0, speed:1, attack:'ranged', range:4, xp:6},
+  {name:'Orc', icon:'👹', hp:12, atk:4, mp:2, speed:1, attack:'melee', xp:10},
+  {name:'Zombie', icon:'🧟', hp:14, atk:3, mp:0, speed:1, attack:'melee', xp:10},
+  {name:'Mimic', icon:'📦', hp:10, atk:5, mp:0, speed:1, attack:'melee', xp:12},
+  {name:'Ogre', icon:'🧌', hp:18, atk:6, mp:0, speed:1, attack:'melee', xp:18},
+  {name:'Young Dragon', icon:'🐉', hp:28, atk:8, mp:10, speed:2, attack:'magic', range:5, cost:3, xp:30}
 ];
 
 const LOOT = {

@@ -10,7 +10,8 @@ const G = {
   turn: 0,
   cooldown: 0,
   gold: 0,
-  messages: []
+  messages: [],
+  effects: []
 };
 
 function log(msg){
@@ -21,6 +22,8 @@ function log(msg){
 }
 
 function between(v,min,max){return v>=min && v<=max}
+
+function addEffect(fx){ G.effects.push(fx); }
 
 // --- Map generation: depth-first maze with rooms ---
 function genMap() {
@@ -69,7 +72,25 @@ function genMap() {
     const cx=(rand()*w)|0, cy=(rand()*h)|0; if(map[cy][cx]===T.FLOOR) map[cy][cx]=T.CHEST;
   }
 
-  G.map = map; G.seen = seen;
+  // add special terrain
+  for(let i=0;i<3;i++){ // water ponds
+    const px=(rand()*w)|0, py=(rand()*h)|0;
+    if(map[py][px]===T.FLOOR && !(px===1&&py===1)){
+      map[py][px]=T.WATER;
+      if(px+1<w && map[py][px+1]===T.FLOOR) map[py][px+1]=T.WATER;
+      if(py+1<h && map[py+1][px]===T.FLOOR) map[py+1][px]=T.WATER;
+    }
+  }
+  for(let i=0;i<2;i++){ // fountains
+    const fx=(rand()*w)|0, fy=(rand()*h)|0;
+    if(map[fy][fx]===T.FLOOR && !(fx===1&&fy===1)) map[fy][fx]=T.FOUNTAIN;
+  }
+  for(let i=0;i<2;i++){ // trap doors
+    const tx=(rand()*w)|0, ty=(rand()*h)|0;
+    if(map[ty][tx]===T.FLOOR && !(tx===1&&ty===1)) map[ty][tx]=T.TRAP;
+  }
+
+  G.map = map; G.seen = seen; G.effects=[];
 
   // place monsters with scaling difficulty
   G.entities=[];
@@ -84,7 +105,8 @@ function genMap() {
     const scale = 1 + (G.floor-1)*0.15;
     const mHp = Math.round(base.hp * scale);
     const mAtk = Math.max(1, Math.round((base.atk||2) * scale));
-    G.entities.push({type:'monster', x:mx, y:my, ...JSON.parse(JSON.stringify(base)), hp: mHp, hpMax: mHp, atk: mAtk});
+    const mMp = base.mp || 0;
+    G.entities.push({type:'monster', x:mx, y:my, ...JSON.parse(JSON.stringify(base)), hp: mHp, hpMax: mHp, mp: mMp, mpMax: mMp, atk: mAtk});
     placed++;
   }
 
@@ -189,7 +211,7 @@ function fov(){
 }
 
 // --- Movement & Combat ---
-function isWalkable(x,y){ return between(x,0,MAP_W-1) && between(y,0,MAP_H-1) && G.map[y][x]!==T.WALL; }
+function isWalkable(x,y){ return between(x,0,MAP_W-1) && between(y,0,MAP_H-1) && ![T.WALL,T.WATER].includes(G.map[y][x]); }
 function entityAt(x,y){ return G.entities.find(e=>e.x===x&&e.y===y); }
 function move(dx,dy){
   const nx=G.player.x+dx, ny=G.player.y+dy;
@@ -208,7 +230,18 @@ function move(dx,dy){
     tick();
     return;
   }
-  G.player.x=nx; G.player.y=ny; tick();
+  G.player.x=nx; G.player.y=ny;
+  const tile = G.map[ny][nx];
+  if(tile===T.FOUNTAIN){
+    G.player.hp = Math.min(G.player.hpMax, G.player.hp+5);
+    G.player.mp = Math.min(G.player.mpMax, G.player.mp+5);
+    log('You feel refreshed by the fountain.');
+  } else if(tile===T.TRAP){
+    log('You fall through a trap door!');
+    descend();
+    return;
+  }
+  tick();
 }
 
 function wait(){ log('You wait.'); tick(); }
@@ -226,6 +259,7 @@ function ability(){
   if(G.player.abilityCd>0){ log(`Ability on cooldown (${G.player.abilityCd}).`); return; }
   if(G.player.cls==='warrior'){
     log('Whirlwind!');
+    addEffect({type:'circle', x:G.player.x, y:G.player.y, r:TILE_SIZE, color:'rgba(255,255,0,0.5)', time:8});
     const tiles=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
     for(const [dx,dy] of tiles){
       const m=entityAt(G.player.x+dx, G.player.y+dy);
@@ -240,8 +274,11 @@ function ability(){
     if(G.player.mp<6){ log('Not enough mana.'); return; }
     log('Fireball!');
     G.player.mp-=6; updateUI();
-    // blast 2x2 centered one tile ahead in facing direction (use last move dir or default up)
-    aoe(G.player.x, G.player.y, 1, 7);
+    const dir = G.lastDir || [0,-1];
+    const tx = G.player.x + dir[0];
+    const ty = G.player.y + dir[1];
+    aoe(tx, ty, 1, 7);
+    addEffect({type:'circle', x:tx, y:ty, r:TILE_SIZE*1.5, color:'rgba(255,80,0,0.5)', time:8});
     G.player.abilityCd = G.player.abilityMaxCd; tick();
   } else if(G.player.cls==='hunter'){
     log('You shoot an arrow.');
@@ -263,9 +300,18 @@ function shootLine(dmg, range){
   // shoot in the direction of last input; store lastDir
   const dir = G.lastDir || [0,-1];
   let [x,y]=[G.player.x, G.player.y];
+  let endX=x, endY=y;
   for(let i=0;i<range;i++){
-    x+=dir[0]; y+=dir[1]; if(!isWalkable(x,y)) break; const m=entityAt(x,y); if(m){ m.hp-=dmg; log(`Arrow hits ${m.name} for ${dmg}.`); if(m.hp<=0){ gainXP(m.xp); maybeDrop(m); G.entities=G.entities.filter(e=>e!==m);} break; }
+    x+=dir[0]; y+=dir[1];
+    if(!isWalkable(x,y)) break;
+    endX=x; endY=y;
+    const m=entityAt(x,y);
+    if(m){
+      m.hp-=dmg; log(`Arrow hits ${m.name} for ${dmg}.`);
+      if(m.hp<=0){ gainXP(m.xp); maybeDrop(m); G.entities=G.entities.filter(e=>e!==m);} break;
+    }
   }
+  addEffect({type:'line', x:G.player.x, y:G.player.y, x2:endX, y2:endY, color:'rgba(255,255,255,0.6)', time:8});
 }
 
 function descend(){
@@ -276,20 +322,33 @@ function descend(){
 
 function enemyTurn(){
   for(const m of G.entities){
-    // very simple AI: approach player if in sight (within radius), else wander
-    const dx = G.player.x - m.x; const dy = G.player.y - m.y; const dist = Math.hypot(dx,dy);
-    if(dist<7){
-      const sdx = Math.sign(dx), sdy = Math.sign(dy);
-      const nx = m.x + (Math.abs(dx)>Math.abs(dy)? sdx : 0);
-      const ny = m.y + (Math.abs(dy)>=Math.abs(dx)? sdy : 0);
-      if(nx===G.player.x && ny===G.player.y){
+    for(let step=0; step<(m.speed||1); step++){
+      const dx = G.player.x - m.x; const dy = G.player.y - m.y; const dist = Math.hypot(dx,dy);
+      if(m.attack==='ranged' && dist <= (m.range||4)){
         const dmg = Math.max(1, (m.atk||2) - G.player.def);
-        G.player.hp -= dmg; log(`${m.name} hits you for ${dmg}.`);
+        G.player.hp -= dmg; log(`${m.name} shoots you for ${dmg}.`);
         if(G.player.hp<=0){ gameOver(); return; }
-      } else if(isWalkable(nx,ny) && !entityAt(nx,ny)) { m.x=nx; m.y=ny; }
-    } else if(Math.random()<0.3){
-      const dirs=[[1,0],[-1,0],[0,1],[0,-1]]; const [ax,ay]=dirs[(Math.random()*4)|0];
-      const nx=m.x+ax, ny=m.y+ay; if(isWalkable(nx,ny) && !entityAt(nx,ny)) { m.x=nx; m.y=ny; }
+        break;
+      } else if(m.attack==='magic' && dist <= (m.range||4) && (m.mp||0) >= (m.cost||2)){
+        m.mp -= (m.cost||2);
+        const dmg = Math.max(1, (m.atk||2) - G.player.def);
+        G.player.hp -= dmg; log(`${m.name} casts a spell for ${dmg}.`);
+        if(G.player.hp<=0){ gameOver(); return; }
+        break;
+      } else if(dist<7){
+        const sdx = Math.sign(dx), sdy = Math.sign(dy);
+        const nx = m.x + (Math.abs(dx)>Math.abs(dy)? sdx : 0);
+        const ny = m.y + (Math.abs(dy)>=Math.abs(dx)? sdy : 0);
+        if(nx===G.player.x && ny===G.player.y){
+          const dmg = Math.max(1, (m.atk||2) - G.player.def);
+          G.player.hp -= dmg; log(`${m.name} hits you for ${dmg}.`);
+          if(G.player.hp<=0){ gameOver(); return; }
+          break;
+        } else if(isWalkable(nx,ny) && !entityAt(nx,ny)) { m.x=nx; m.y=ny; }
+      } else if(Math.random()<0.3){
+        const dirs=[[1,0],[-1,0],[0,1],[0,-1]]; const [ax,ay]=dirs[(Math.random()*4)|0];
+        const nx=m.x+ax, ny=m.y+ay; if(isWalkable(nx,ny) && !entityAt(nx,ny)) { m.x=nx; m.y=ny; }
+      }
     }
   }
 }
@@ -299,6 +358,7 @@ function tick(){
   if(G.player.abilityCd>0) G.player.abilityCd--;
   enemyTurn();
   fov();
+  G.effects = G.effects.filter(fx => --fx.time > 0);
   updateUI();
   render();
 }
