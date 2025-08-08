@@ -34,9 +34,20 @@ const LOOT = {
     {name:'Sword +1', type:'equip', atk:+1},
     {name:'Staff +1', type:'equip', atk:+1, mp:+4},
     {name:'Leather Armor', type:'equip', def:+1},
-    {name:'Ring of Vigor', type:'equip', hp:+5}
+    {name:'Ring of Vigor', type:'equip', hp:+5},
+    {name:'Sword +2', type:'equip', atk:+2},
+    {name:'Staff +2', type:'equip', atk:+2, mp:+8},
+    {name:'Chainmail +2', type:'equip', def:+2}
   ]
 };
+
+const MERCHANT_ITEMS = [
+  {name:'Sword +3', type:'equip', atk:+3, cost:100},
+  {name:'Staff +3', type:'equip', atk:+3, mp:+12, cost:100},
+  {name:'Plate Armor +3', type:'equip', def:+3, hp:+10, cost:100}
+];
+
+const BOSS = {name:'Crystal Guardian', icon:'💠', hp:40, atk:9, mp:6, speed:1, attack:'magic', range:5, cost:3, xp:0};
 
 const CLASSES = {
   warrior: { hp: 30, mp: 0, atk: 5, def: 2, abilityCd: 5, icon:'⚔️' },
