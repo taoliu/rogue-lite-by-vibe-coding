@@ -71,6 +71,21 @@ function render(){
       const x2=fx.x2*TILE_SIZE+TILE_SIZE/2, y2=fx.y2*TILE_SIZE+TILE_SIZE/2;
       ctx.strokeStyle=fx.color; ctx.lineWidth=2;
       ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    } else if(fx.type==='firework'){
+      const ex=fx.x*TILE_SIZE+TILE_SIZE/2, ey=fx.y*TILE_SIZE+TILE_SIZE/2;
+      const p=fx.elapsed/fx.duration;
+      ctx.strokeStyle=fx.color;
+      ctx.globalAlpha = 1-p;
+      for(let i=0;i<12;i++){
+        const ang=(Math.PI*2/12)*i;
+        const x2=ex+Math.cos(ang)*fx.r*p;
+        const y2=ey+Math.sin(ang)*fx.r*p;
+        ctx.beginPath();
+        ctx.moveTo(ex,ey);
+        ctx.lineTo(x2,y2);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
     }
   }
 }

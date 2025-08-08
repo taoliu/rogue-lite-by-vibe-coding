@@ -30,7 +30,9 @@ function startRun(cls){
   const seedStr = document.getElementById('seed').value.trim();
   G.rng = rngFromSeed(seedStr || undefined);
   G.player = newPlayer(cls);
-  G.floor=1; G.turn=0; G.gold=0; G.messages=[]; G.lastDir=[0,-1];
+  G.floor=1; G.turn=0; G.gold=0; G.messages=[]; G.lastDir=[0,-1]; G.killCounts={}; G.win=false;
+  const winModal=document.getElementById('winModal');
+  if(winModal) winModal.remove();
   genMap(); updateUI(); render();
   document.getElementById('classModal').style.display='none';
   window.addEventListener('keydown', onKey);
