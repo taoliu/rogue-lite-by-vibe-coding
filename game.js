@@ -11,7 +11,8 @@ const G = {
   cooldown: 0,
   gold: 0,
   messages: [],
-  effects: []
+  effects: [],
+  animating: 0
 };
 
 function log(msg){
@@ -24,6 +25,30 @@ function log(msg){
 function between(v,min,max){return v>=min && v<=max}
 
 function addEffect(fx){ G.effects.push(fx); }
+
+// play an animated effect and resolve when finished
+function playEffect(fx, duration=300){
+  fx.duration = duration;
+  fx.elapsed = 0;
+  G.effects.push(fx);
+  G.animating++;
+  return new Promise(resolve=>{
+    function step(ts){
+      if(!fx.start) fx.start = ts;
+      fx.elapsed = ts - fx.start;
+      render();
+      if(fx.elapsed >= fx.duration){
+        G.effects = G.effects.filter(e=>e!==fx);
+        G.animating--;
+        render();
+        resolve();
+      } else {
+        requestAnimationFrame(step);
+      }
+    }
+    requestAnimationFrame(step);
+  });
+}
 
 // --- Map generation: depth-first maze with rooms ---
 function genMap() {
@@ -191,12 +216,12 @@ function applyEquipStats(it, sign){
   G.player.mp = Math.min(G.player.mp, G.player.mpMax);
 }
 
-function useItem(i){
+async function useItem(i){
   const it = G.player.inv[i]; if(!it) return;
   if(it.type==='potion'){ G.player.hp = Math.min(G.player.hpMax, G.player.hp + it.heal); log(`You drink a potion (+${it.heal} HP).`); G.player.inv.splice(i,1); }
   else if(it.type==='mana'){ G.player.mp = Math.min(G.player.mpMax, G.player.mp + (it.mana||5)); log(`Mana restored.`); G.player.inv.splice(i,1); }
-  else if(it.type==='bomb'){ log('You throw a bomb!'); aoe(G.player.x, G.player.y, 1, it.dmg); G.player.inv.splice(i,1); tick(); }
-  else if(it.type==='throw'){ log('You throw a dagger!'); shootLine(it.dmg, 4); G.player.inv.splice(i,1); tick(); }
+  else if(it.type==='bomb'){ log('You throw a bomb!'); aoe(G.player.x, G.player.y, 1, it.dmg); G.player.inv.splice(i,1); await tick(); }
+  else if(it.type==='throw'){ log('You throw a dagger!'); await shootLine(it.dmg, 4); G.player.inv.splice(i,1); await tick(); }
   else if(it.type==='equip'){
     if(it.atk){ if(G.player.weapon) applyEquipStats(G.player.weapon, -1); G.player.weapon = it; }
     else { if(G.player.armor) applyEquipStats(G.player.armor, -1); G.player.armor = it; }
@@ -218,6 +243,17 @@ function fov(){
 // --- Movement & Combat ---
 function isWalkable(x,y){
   return between(x,0,MAP_W-1) && between(y,0,MAP_H-1) && G.map[y][x]!==T.WALL;
+}
+function hasLineOfSight(x1,y1,x2,y2){
+  let dx = x2-x1, dy = y2-y1;
+  const steps = Math.max(Math.abs(dx), Math.abs(dy));
+  for(let i=1;i<steps;i++){
+    const t = i/steps;
+    const x = Math.round(x1 + dx*t);
+    const y = Math.round(y1 + dy*t);
+    if(!isWalkable(x,y)) return false;
+  }
+  return true;
 }
 function entityAt(x,y){ return G.entities.find(e=>e.x===x&&e.y===y); }
 function move(dx,dy){
@@ -265,11 +301,11 @@ function maybeDrop(mon){
 }
 
 // Ability handlers
-function ability(){
+async function ability(){
   if(G.player.abilityCd>0){ log(`Ability on cooldown (${G.player.abilityCd}).`); return; }
   if(G.player.cls==='warrior'){
     log('Whirlwind!');
-    addEffect({type:'circle', x:G.player.x, y:G.player.y, r:TILE_SIZE, color:'rgba(255,255,0,0.5)', time:2});
+    await playEffect({type:'whirlwind', x:G.player.x, y:G.player.y, r:TILE_SIZE});
     const tiles=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
     for(const [dx,dy] of tiles){
       const m=entityAt(G.player.x+dx, G.player.y+dy);
@@ -279,7 +315,7 @@ function ability(){
         if(m.hp<=0){ gainXP(m.xp); maybeDrop(m); G.entities=G.entities.filter(e=>e!==m);} }
     }
     G.player.abilityCd = G.player.abilityMaxCd;
-    tick();
+    await tick();
   } else if(G.player.cls==='mage'){
     if(G.player.mp<6){ log('Not enough mana.'); return; }
     log('Fireball!');
@@ -287,14 +323,16 @@ function ability(){
     const dir = G.lastDir || [0,-1];
     const tx = G.player.x + dir[0];
     const ty = G.player.y + dir[1];
+    if(!isWalkable(tx,ty)){ log('No clear path.'); return; }
+    await playEffect({type:'arrow', x1:G.player.x, y1:G.player.y, x2:tx, y2:ty, color:'orange', icon:'🔥'});
+    await playEffect({type:'fireball', x:tx, y:ty, r:TILE_SIZE*1.5, color:'rgba(255,80,0,0.5)'});
     const dmg = 10 + G.player.lvl;
     aoe(tx, ty, 1, dmg);
-    addEffect({type:'circle', x:tx, y:ty, r:TILE_SIZE*1.5, color:'rgba(255,80,0,0.5)', time:2});
-    G.player.abilityCd = G.player.abilityMaxCd; tick();
+    G.player.abilityCd = G.player.abilityMaxCd; await tick();
   } else if(G.player.cls==='hunter'){
     log('You shoot an arrow.');
-    shootLine(G.player.atk+2, 5);
-    G.player.abilityCd = G.player.abilityMaxCd; tick();
+    await shootLine(G.player.atk+2, 5);
+    G.player.abilityCd = G.player.abilityMaxCd; await tick();
   }
 }
 
@@ -307,22 +345,24 @@ function aoe(cx,cy,r,dmg){
   }
 }
 
-function shootLine(dmg, range){
+async function shootLine(dmg, range){
   // shoot in the direction of last input; store lastDir
   const dir = G.lastDir || [0,-1];
   let [x,y]=[G.player.x, G.player.y];
   let endX=x, endY=y;
+  let target=null;
   for(let i=0;i<range;i++){
     x+=dir[0]; y+=dir[1];
     if(!isWalkable(x,y)) break;
     endX=x; endY=y;
     const m=entityAt(x,y);
-    if(m){
-      m.hp-=dmg; log(`Arrow hits ${m.name} for ${dmg}.`);
-      if(m.hp<=0){ gainXP(m.xp); maybeDrop(m); G.entities=G.entities.filter(e=>e!==m);} break;
-    }
+    if(m){ target=m; break; }
   }
-  addEffect({type:'line', x:G.player.x, y:G.player.y, x2:endX, y2:endY, color:'rgba(255,255,255,0.6)', time:2});
+  await playEffect({type:'arrow', x1:G.player.x, y1:G.player.y, x2:endX, y2:endY, color:'rgba(255,255,255,0.6)'});
+  if(target){
+    target.hp-=dmg; log(`Arrow hits ${target.name} for ${dmg}.`);
+    if(target.hp<=0){ gainXP(target.xp); maybeDrop(target); G.entities=G.entities.filter(e=>e!==target); }
+  }
 }
 
 function descend(){
@@ -331,17 +371,19 @@ function descend(){
   genMap(); updateUI();
 }
 
-function enemyTurn(){
+async function enemyTurn(){
   for(const m of G.entities){
     for(let step=0; step<(m.speed||1); step++){
       const dx = G.player.x - m.x; const dy = G.player.y - m.y; const dist = Math.hypot(dx,dy);
-      if(m.attack==='ranged' && dist <= (m.range||4)){
+      if(m.attack==='ranged' && dist <= (m.range||4) && hasLineOfSight(m.x,m.y,G.player.x,G.player.y)){
+        await playEffect({type:'arrow', x1:m.x, y1:m.y, x2:G.player.x, y2:G.player.y, color:'rgba(255,0,0,0.6)'});
         const dmg = Math.max(1, (m.atk||2) - G.player.def);
         G.player.hp -= dmg; log(`${m.name} shoots you for ${dmg}.`);
         if(G.player.hp<=0){ gameOver(); return; }
         break;
-      } else if(m.attack==='magic' && dist <= (m.range||4) && (m.mp||0) >= (m.cost||2)){
+      } else if(m.attack==='magic' && dist <= (m.range||4) && (m.mp||0) >= (m.cost||2) && hasLineOfSight(m.x,m.y,G.player.x,G.player.y)){
         m.mp -= (m.cost||2);
+        await playEffect({type:'arrow', x1:m.x, y1:m.y, x2:G.player.x, y2:G.player.y, color:'rgba(0,255,255,0.6)', icon:'✨'});
         const dmg = Math.max(1, (m.atk||2) - G.player.def);
         G.player.hp -= dmg; log(`${m.name} casts a spell for ${dmg}.`);
         if(G.player.hp<=0){ gameOver(); return; }
@@ -364,12 +406,13 @@ function enemyTurn(){
   }
 }
 
-function tick(){
+async function tick(){
+  G.animating++;
   G.turn++;
   if(G.player.abilityCd>0) G.player.abilityCd--;
-  enemyTurn();
+  await enemyTurn();
   fov();
-  G.effects = G.effects.filter(fx => --fx.time > 0);
+  G.animating--;
   updateUI();
   render();
 }

@@ -1,5 +1,6 @@
 // --- Input & Bootstrap ---
 function onKey(e){
+  if(G.animating) return;
   const k=e.key.toLowerCase();
   if(['arrowup','w'].includes(k)){ move(0,-1); G.lastDir=[0,-1]; }
   else if(['arrowdown','s'].includes(k)){ move(0,1); G.lastDir=[0,1]; }
