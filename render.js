@@ -41,7 +41,28 @@ function render(){
 
   // ability effects
   for(const fx of G.effects){
-    if(fx.type==='circle'){
+    const p = fx.duration ? fx.elapsed/fx.duration : 0;
+    if(fx.type==='whirlwind'){
+      const cx=fx.x*TILE_SIZE+TILE_SIZE/2, cy=fx.y*TILE_SIZE+TILE_SIZE/2;
+      const ang=p*Math.PI*2;
+      ctx.strokeStyle=fx.color||'rgba(255,255,0,0.7)'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(cx,cy);
+      ctx.lineTo(cx+Math.cos(ang)*fx.r, cy+Math.sin(ang)*fx.r);
+      ctx.stroke();
+    } else if(fx.type==='fireball'){
+      const ex=fx.x*TILE_SIZE+TILE_SIZE/2, ey=fx.y*TILE_SIZE+TILE_SIZE/2;
+      ctx.strokeStyle=fx.color||'rgba(255,80,0,0.5)'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(ex,ey,fx.r*p,0,Math.PI*2); ctx.stroke();
+    } else if(fx.type==='arrow'){
+      const x1=fx.x1*TILE_SIZE+TILE_SIZE/2, y1=fx.y1*TILE_SIZE+TILE_SIZE/2;
+      const x2=fx.x2*TILE_SIZE+TILE_SIZE/2, y2=fx.y2*TILE_SIZE+TILE_SIZE/2;
+      const cx=x1+(x2-x1)*p, cy=y1+(y2-y1)*p;
+      ctx.strokeStyle=fx.color||'#fff'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(cx,cy); ctx.stroke();
+      ctx.fillStyle=fx.color||'#fff';
+      if(fx.icon){ ctx.fillText(fx.icon,cx,cy); }
+      else ctx.fillRect(cx-2,cy-2,4,4);
+    } else if(fx.type==='circle'){
       const ex=fx.x*TILE_SIZE+TILE_SIZE/2, ey=fx.y*TILE_SIZE+TILE_SIZE/2;
       ctx.strokeStyle=fx.color; ctx.lineWidth=2;
       ctx.beginPath(); ctx.arc(ex,ey,fx.r,0,Math.PI*2); ctx.stroke();
