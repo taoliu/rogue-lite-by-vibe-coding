@@ -160,10 +160,14 @@ function openChest(){
   const isRare = Math.random()<0.5;
   const pool = isRare? LOOT.rare : LOOT.common;
   const item = JSON.parse(JSON.stringify(pool[(Math.random()*pool.length)|0]));
-  G.player.inv.push(item);
   const gold = (Math.random()*20+10)|0;
   G.gold += gold;
-  log(`You open the chest and find ${item.name} and ${gold} gold!`);
+  if(G.player.inv.length >= 9){
+    log(`You open the chest and find ${item.name} and ${gold} gold, but your inventory is full!`);
+  } else {
+    G.player.inv.push(item);
+    log(`You open the chest and find ${item.name} and ${gold} gold!`);
+  }
   renderInv(); updateUI(); render();
 }
 
@@ -171,6 +175,7 @@ function pickup(){
   if(G.map[G.player.y][G.player.x]===T.CHEST){ openChest(); return; }
   const here = G.items.findIndex(it=>it.x===G.player.x && it.y===G.player.y);
   if(here===-1){ log('Nothing to pick up.'); return; }
+  if(G.player.inv.length >= 9){ log('Inventory full.'); return; }
   const obj = G.items.splice(here,1)[0].item;
   G.player.inv.push(obj);
   log(`Picked up ${obj.name}.`);
@@ -211,7 +216,9 @@ function fov(){
 }
 
 // --- Movement & Combat ---
-function isWalkable(x,y){ return between(x,0,MAP_W-1) && between(y,0,MAP_H-1) && ![T.WALL,T.WATER].includes(G.map[y][x]); }
+function isWalkable(x,y){
+  return between(x,0,MAP_W-1) && between(y,0,MAP_H-1) && G.map[y][x]!==T.WALL;
+}
 function entityAt(x,y){ return G.entities.find(e=>e.x===x&&e.y===y); }
 function move(dx,dy){
   const nx=G.player.x+dx, ny=G.player.y+dy;
@@ -241,6 +248,9 @@ function move(dx,dy){
     descend();
     return;
   }
+  if(G.player.cls==='mage'){
+    G.player.mp = Math.min(G.player.mpMax, G.player.mp + 1);
+  }
   tick();
 }
 
@@ -259,7 +269,7 @@ function ability(){
   if(G.player.abilityCd>0){ log(`Ability on cooldown (${G.player.abilityCd}).`); return; }
   if(G.player.cls==='warrior'){
     log('Whirlwind!');
-    addEffect({type:'circle', x:G.player.x, y:G.player.y, r:TILE_SIZE, color:'rgba(255,255,0,0.5)', time:8});
+    addEffect({type:'circle', x:G.player.x, y:G.player.y, r:TILE_SIZE, color:'rgba(255,255,0,0.5)', time:2});
     const tiles=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
     for(const [dx,dy] of tiles){
       const m=entityAt(G.player.x+dx, G.player.y+dy);
@@ -277,8 +287,9 @@ function ability(){
     const dir = G.lastDir || [0,-1];
     const tx = G.player.x + dir[0];
     const ty = G.player.y + dir[1];
-    aoe(tx, ty, 1, 7);
-    addEffect({type:'circle', x:tx, y:ty, r:TILE_SIZE*1.5, color:'rgba(255,80,0,0.5)', time:8});
+    const dmg = 10 + G.player.lvl;
+    aoe(tx, ty, 1, dmg);
+    addEffect({type:'circle', x:tx, y:ty, r:TILE_SIZE*1.5, color:'rgba(255,80,0,0.5)', time:2});
     G.player.abilityCd = G.player.abilityMaxCd; tick();
   } else if(G.player.cls==='hunter'){
     log('You shoot an arrow.');
@@ -311,7 +322,7 @@ function shootLine(dmg, range){
       if(m.hp<=0){ gainXP(m.xp); maybeDrop(m); G.entities=G.entities.filter(e=>e!==m);} break;
     }
   }
-  addEffect({type:'line', x:G.player.x, y:G.player.y, x2:endX, y2:endY, color:'rgba(255,255,255,0.6)', time:8});
+  addEffect({type:'line', x:G.player.x, y:G.player.y, x2:endX, y2:endY, color:'rgba(255,255,255,0.6)', time:2});
 }
 
 function descend(){
