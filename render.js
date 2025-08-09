@@ -6,6 +6,8 @@ import { G, useItem, discardItem } from './game.js';
 // Toggle between classic 2D canvas rendering and experimental 3D using Three.js
 const USE_WEBGL = true;
 const canvas = document.getElementById('view');
+const minimap = document.getElementById('minimap');
+const mctx = minimap.getContext('2d');
 let ctx, renderer3d, scene, camera, playerMesh,
   entityMeshes = [], itemMeshes = [], chestMeshes = [], tileMeshes = [], fxGroup,
   sceneBuilt = false;
@@ -71,6 +73,56 @@ function createCharacterMesh(color){
   return group;
 }
 
+function createDragonMesh(){
+  const g = createCharacterMesh(0xff0000);
+  const wingGeom = new THREE.BoxGeometry(0.1,0.4,1);
+  const mat = new THREE.MeshLambertMaterial({color:0xaa0000});
+  const left = new THREE.Mesh(wingGeom,mat);
+  left.position.set(-0.5,0.5,0);
+  left.rotation.z=Math.PI/4;
+  const right = left.clone();
+  right.position.x=0.5;
+  right.rotation.z=-Math.PI/4;
+  g.add(left); g.add(right);
+  g.scale.set(1.5,1.5,1.5);
+  return g;
+}
+
+function createCrystalGuardianMesh(){
+  const group=new THREE.Group();
+  const core=new THREE.Mesh(new THREE.OctahedronGeometry(0.6),new THREE.MeshLambertMaterial({color:0x00ffff}));
+  core.position.y=0.6;
+  group.add(core);
+  return group;
+}
+
+function createMerchantMesh(){
+  const g=createCharacterMesh(0x996633);
+  const bag=new THREE.Mesh(new THREE.SphereGeometry(0.3,8,8),new THREE.MeshLambertMaterial({color:0x8b4513}));
+  bag.position.set(-0.4,0.5,0);
+  g.add(bag);
+  return g;
+}
+
+function createStairsMesh(){
+  const group=new THREE.Group();
+  for(let i=0;i<3;i++){
+    const step=new THREE.Mesh(new THREE.BoxGeometry(1,0.15,1-(i*0.3)),new THREE.MeshLambertMaterial({color:0xb8c1ff}));
+    step.position.set(0,0.075+i*0.15,-0.35+i*0.15);
+    group.add(step);
+  }
+  return group;
+}
+
+function createFountainMesh(){
+  const group=new THREE.Group();
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,0.2,12),new THREE.MeshLambertMaterial({color:0xaaaaaa}));
+  base.position.y=0.1; group.add(base);
+  const water=new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.3,0.05,12),new THREE.MeshLambertMaterial({color:0x4fc3f7}));
+  water.position.y=0.25; group.add(water);
+  return group;
+}
+
 function createChestMesh(){
   const chest = new THREE.Mesh(
     new THREE.BoxGeometry(0.8,0.5,0.8),
@@ -118,7 +170,9 @@ function createMonsterMesh(monster){
   if(name==='Zombie') return createCharacterMesh(0x99cc00);
   if(name==='Mimic') return createChestMesh();
   if(name==='Ogre'){ const m=createCharacterMesh(0x553300); m.scale.set(1.3,1.3,1.3); return m; }
-  if(name==='Young Dragon'){ const m=createCharacterMesh(0xff0000); m.scale.set(1.5,1.5,1.5); return m; }
+  if(name==='Young Dragon') return createDragonMesh();
+  if(name==='Crystal Guardian') return createCrystalGuardianMesh();
+  if(monster.type==='merchant') return createMerchantMesh();
   return createCharacterMesh(0xff0000);
 }
 
@@ -134,14 +188,20 @@ function buildScene3D(){
   chestMeshes = [];
   for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
     const t = G.map[y][x];
+    const group = new THREE.Group();
+    group.position.set(x,0,y);
+    scene.add(group);
+    tileMeshes[y][x] = group;
     let color = 0xffffff;
     if (t === T.WALL) color = 0x000000;
-    else if (t === T.STAIRS) color = 0xb8c1ff;
     else if (t === T.WATER) color = 0x113355;
-    const cube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color }));
-    cube.position.set(x, 0, y);
-    scene.add(cube);
-    tileMeshes[y][x] = cube;
+    const base = new THREE.Mesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshLambertMaterial({color}));
+    group.add(base);
+    if (t === T.STAIRS) {
+      group.add(createStairsMesh());
+    } else if (t === T.FOUNTAIN) {
+      group.add(createFountainMesh());
+    }
     if (t === T.CHEST) {
       const chest = createChestMesh();
       chest.position.set(x, 0, y);
@@ -266,8 +326,10 @@ export function render() {
       obj.mesh.visible = G.visible[obj.y][obj.x];
     }
     for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
-      tileMeshes[y][x].visible = G.seen[y][x];
+      tileMeshes[y][x].visible = G.visible[y][x];
     }
+    camera.position.set(G.player.x, 20, G.player.y + 20);
+    camera.lookAt(G.player.x, 0, G.player.y);
     fxGroup.clear();
     for (const fx of G.effects) {
       const p = fx.duration ? fx.elapsed / fx.duration : 0;
@@ -291,6 +353,7 @@ export function render() {
     }
     renderer3d.render(scene, camera);
   }
+  renderMinimap();
 }
 
 export function renderInv(){
@@ -325,4 +388,24 @@ export function updateUI(){
   document.getElementById('barHP').style.width = `${Math.max(0, (G.player.hp/G.player.hpMax)*100)}%`;
   document.getElementById('barMP').style.width = `${G.player.mpMax? (G.player.mp/G.player.mpMax)*100 : 0}%`;
   renderInv();
+}
+
+function renderMinimap(){
+  mctx.clearRect(0,0,minimap.width,minimap.height);
+  const sx=minimap.width/MAP_W, sy=minimap.height/MAP_H;
+  for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++){
+    if(!G.seen[y][x]) continue;
+    const t=G.map[y][x];
+    let col='#eee';
+    if(t===T.WALL) col='#000';
+    else if(t===T.WATER) col='#55f';
+    else if(t===T.STAIRS) col='#b8c1ff';
+    else if(t===T.FOUNTAIN) col='#4fc3f7';
+    mctx.fillStyle=col;
+    mctx.fillRect(x*sx,y*sy,sx,sy);
+  }
+  mctx.fillStyle='red';
+  for(const e of G.entities){ if(!G.seen[e.y][e.x]) continue; mctx.fillRect(e.x*sx,e.y*sy,sx,sy); }
+  mctx.fillStyle='yellow';
+  mctx.fillRect(G.player.x*sx,G.player.y*sy,sx,sy);
 }

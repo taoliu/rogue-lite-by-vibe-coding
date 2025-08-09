@@ -387,8 +387,10 @@ function maybeDrop(mon){
     return;
   }
   if(Math.random()<0.7){ const g = (Math.random()*8+2)|0; G.gold+=g; log(`You loot ${g} gold.`); }
+  const before = G.items.length;
   if(Math.random()<0.35){ G.items.push({x:mon.x, y:mon.y, item: JSON.parse(JSON.stringify(LOOT.common[(Math.random()*LOOT.common.length)|0]))}); }
   if(Math.random()<0.12){ G.items.push({x:mon.x, y:mon.y, item: JSON.parse(JSON.stringify(LOOT.rare[(Math.random()*LOOT.rare.length)|0]))}); }
+  if(G.items.length>before) resetScene();
   updateUI();
 }
 
