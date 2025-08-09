@@ -54,6 +54,19 @@ for(const b of document.querySelectorAll('.classbtn')){
   b.addEventListener('click', ()=> startRun(b.dataset.class));
 }
 
+// mobile controls
+for(const btn of document.querySelectorAll('#dpad button')){
+  btn.addEventListener('pointerdown', e=>{
+    e.preventDefault();
+    if(G.animating) return;
+    const dx=parseInt(btn.dataset.dx), dy=parseInt(btn.dataset.dy);
+    if(dx===0 && dy===0) wait();
+    else { move(dx,dy); G.lastDir=[dx,dy]; }
+  });
+}
+document.getElementById('btnMobilePickup')?.addEventListener('pointerdown', e=>{ e.preventDefault(); pickup(); });
+document.getElementById('btnMobileAbility')?.addEventListener('pointerdown', e=>{ e.preventDefault(); ability(); });
+
 // Start paused at class select
 updateUI();
 render();
