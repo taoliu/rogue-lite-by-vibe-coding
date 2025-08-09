@@ -1,3 +1,7 @@
+import { rngFromSeed } from './utils.js';
+import { G, move, entityAt, gainXP, maybeDrop, tick, wait, ability, pickup, descend, discardItem, useItem, newPlayer, genMap, log } from './game.js';
+import { updateUI, render } from './render.js';
+
 // --- Input & Bootstrap ---
 function onKey(e){
   if(G.animating) return;
