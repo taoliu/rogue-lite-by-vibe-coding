@@ -16,10 +16,10 @@ export const MONSTERS = [
   {name:'Goblin', icon:'👺', hp:6, atk:2, mp:0, speed:2, attack:'melee', xp:4},
   {name:'Skeleton Archer', icon:'🏹', hp:8, atk:3, mp:0, speed:1, attack:'ranged', range:4, xp:6},
   {name:'Orc', icon:'👹', hp:12, atk:4, mp:2, speed:1, attack:'melee', xp:10},
-  {name:'Zombie', icon:'🧟', hp:14, atk:3, mp:0, speed:1, attack:'melee', xp:10},
+  {name:'Zombie', icon:'🧟', hp:14, atk:3, mp:0, speed:0.5, attack:'melee', xp:10},
   {name:'Mimic', icon:'📦', hp:10, atk:5, mp:0, speed:1, attack:'melee', xp:12},
   {name:'Ogre', icon:'🧌', hp:18, atk:6, mp:0, speed:1, attack:'melee', xp:18},
-  {name:'Young Dragon', icon:'🐉', hp:28, atk:8, mp:10, speed:2, attack:'magic', range:5, cost:3, xp:30}
+  {name:'Young Dragon', icon:'🐉', hp:28, atk:8, mp:10, speed:3, attack:'magic', range:5, cost:3, xp:30}
 ];
 
 export const LOOT = {
@@ -47,7 +47,7 @@ export const MERCHANT_ITEMS = [
   {name:'Plate Armor +3', type:'equip', def:+3, hp:+10, cost:100}
 ];
 
-export const BOSS = {name:'Crystal Guardian', icon:'💠', hp:40, atk:9, mp:6, speed:1, attack:'magic', range:5, cost:3, xp:0};
+export const BOSS = {name:'Crystal Guardian', icon:'💠', hp:40, atk:9, mp:6, speed:0.5, attack:'magic', range:5, cost:3, xp:0};
 
 export const CLASSES = {
   warrior: { hp: 30, mp: 0, atk: 5, def: 2, abilityCd: 5, icon:'⚔️' },
