@@ -48,7 +48,7 @@ document.getElementById('btnRestart').addEventListener('click', ()=>{
   window.removeEventListener('keydown', onKey);
 });
 document.getElementById('btnHelp').addEventListener('click', ()=>{
-  alert('Move: WASD/Arrows | Wait: . | Attack: F | Ability: Space | Pick up/Open chest: G | Down stairs: >\nInventory: click item or press 1..9 to use, Shift+1..9 to drop');
+  alert('Move: WASD/Arrows | Wait: . | Attack: F | Ability: Space | Open chest: G | Down stairs: >\nInventory: click item or press 1..9 to use, Shift+1..9 to drop');
 });
 for(const b of document.querySelectorAll('.classbtn')){
   b.addEventListener('click', ()=> startRun(b.dataset.class));

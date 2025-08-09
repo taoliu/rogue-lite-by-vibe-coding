@@ -33,6 +33,13 @@ function between(v,min,max){return v>=min && v<=max}
 
 function addEffect(fx){ G.effects.push(fx); }
 
+function canUse(it){
+  if(!it) return true;
+  if(it.type==='ammo' && G.player.cls!=='hunter') return false;
+  if(it.type==='mana' && G.player.cls!=='mage') return false;
+  return true;
+}
+
 function findClosestMonster(){
   let closest=null, dist=Infinity;
   for(const m of G.entities){
@@ -240,8 +247,11 @@ function openChest(){
   const item = JSON.parse(JSON.stringify(pool[(Math.random()*pool.length)|0]));
   const gold = (Math.random()*20+10)|0;
   G.gold += gold;
-  if(G.player.inv.length >= 9){
+  if(!canUse(item)){
+    log(`You open the chest and find ${item.name} and ${gold} gold, but discard the item.`);
+  } else if(G.player.inv.length >= 9){
     log(`You open the chest and find ${item.name} and ${gold} gold, but your inventory is full!`);
+    G.items.push({x:G.player.x, y:G.player.y, item});
   } else {
     G.player.inv.push(item);
     log(`You open the chest and find ${item.name} and ${gold} gold!`);
@@ -269,14 +279,7 @@ function openShop(m){
 
 function pickup(){
   if(G.map[G.player.y][G.player.x]===T.CHEST){ openChest(); return; }
-  const here = G.items.findIndex(it=>it.x===G.player.x && it.y===G.player.y);
-  if(here===-1){ log('Nothing to pick up.'); return; }
-  if(G.player.inv.length >= 9){ log('Inventory full.'); return; }
-  const obj = G.items.splice(here,1)[0].item;
-  G.player.inv.push(obj);
-  log(`Picked up ${obj.name}.`);
-  renderInv();
-  render();
+  log('Nothing to interact.');
 }
 
 function applyEquipStats(it, sign){
@@ -374,6 +377,22 @@ function move(dx,dy){
   if(G.player.cls==='mage'){
     G.player.mp = Math.min(G.player.mpMax, G.player.mp + 1);
   }
+  const here = G.items.findIndex(it=>it.x===G.player.x && it.y===G.player.y);
+  if(here!==-1){
+    const obj = G.items[here].item;
+    if(!canUse(obj)){
+      G.items.splice(here,1);
+      log(`Discarded ${obj.name}.`);
+      resetScene();
+    } else if(G.player.inv.length < 9){
+      G.items.splice(here,1);
+      G.player.inv.push(obj);
+      log(`Picked up ${obj.name}.`);
+      resetScene();
+    } else {
+      log('Inventory full.');
+    }
+  }
   tick();
 }
 
@@ -387,9 +406,22 @@ function maybeDrop(mon){
     return;
   }
   if(Math.random()<0.7){ const g = (Math.random()*8+2)|0; G.gold+=g; log(`You loot ${g} gold.`); }
+  const drops=[];
+  if(Math.random()<0.35) drops.push(JSON.parse(JSON.stringify(LOOT.common[(Math.random()*LOOT.common.length)|0])));
+  if(Math.random()<0.12) drops.push(JSON.parse(JSON.stringify(LOOT.rare[(Math.random()*LOOT.rare.length)|0])));
   const before = G.items.length;
-  if(Math.random()<0.35){ G.items.push({x:mon.x, y:mon.y, item: JSON.parse(JSON.stringify(LOOT.common[(Math.random()*LOOT.common.length)|0]))}); }
-  if(Math.random()<0.12){ G.items.push({x:mon.x, y:mon.y, item: JSON.parse(JSON.stringify(LOOT.rare[(Math.random()*LOOT.rare.length)|0]))}); }
+  for(const item of drops){
+    if(!canUse(item)){
+      log(`Discarded ${item.name}.`);
+      continue;
+    }
+    if(G.player.inv.length < 9){
+      G.player.inv.push(item);
+      log(`You acquire ${item.name}.`);
+    } else {
+      G.items.push({x:mon.x, y:mon.y, item});
+    }
+  }
   if(G.items.length>before) resetScene();
   updateUI();
 }
