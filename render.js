@@ -1,4 +1,4 @@
-// import * as THREE from './node_modules/three/build/three.module.js';
+import * as THREE from 'three';
 import { T, TILE_SIZE, MAP_W, MAP_H } from './data.js';
 import { G, useItem, discardItem } from './game.js';
 
