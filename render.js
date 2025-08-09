@@ -8,6 +8,10 @@ const USE_WEBGL = true;
 const canvas = document.getElementById('view');
 let ctx, renderer3d, scene, camera, playerMesh, entityMeshes = [], sceneBuilt = false;
 
+export function resetScene() {
+  sceneBuilt = false;
+}
+
 if (USE_WEBGL) {
   // Set up a basic Three.js scene
   renderer3d = new THREE.WebGLRenderer({ canvas });
