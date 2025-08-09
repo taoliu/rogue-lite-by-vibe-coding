@@ -1,3 +1,7 @@
+import * as THREE from 'three';
+import { T, TILE_SIZE, MAP_W, MAP_H } from './data.js';
+import { G, useItem, discardItem } from './game.js';
+
 // --- Rendering and UI ---
 // Toggle between classic 2D canvas rendering and experimental 3D using Three.js
 const USE_WEBGL = true;
@@ -68,7 +72,7 @@ function buildScene3D(){
   sceneBuilt = true;
 }
 
-function render() {
+export function render() {
   if (!G.player) return;
   if (!USE_WEBGL) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -148,7 +152,7 @@ function render() {
   }
 }
 
-function renderInv(){
+export function renderInv(){
   const inv = document.getElementById('uiInv');
   inv.innerHTML = '';
   G.player.inv.forEach((it, idx)=>{
@@ -163,7 +167,7 @@ function renderInv(){
   for(let i=G.player.inv.length;i<6;i++){ const d=document.createElement('div'); d.className='slot'; d.innerHTML='—'; inv.appendChild(d); }
 }
 
-function updateUI(){
+export function updateUI(){
   if(!G.player) return;
   document.getElementById('uiClass').textContent = G.player.cls;
   document.getElementById('uiLvl').textContent = G.player.lvl;

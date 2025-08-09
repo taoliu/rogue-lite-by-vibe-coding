@@ -21,7 +21,7 @@ function mulberry32(a){
   }
 }
 
-function rngFromSeed(seed){
+export function rngFromSeed(seed){
   if(!seed) seed = Math.random().toString(36).slice(2);
   const s = xmur3(seed);
   return {rand: mulberry32(s()), seed};

@@ -1,5 +1,9 @@
+import { rngFromSeed } from './utils.js';
+import { T, TILE_SIZE, MAP_W, MAP_H, MONSTERS, LOOT, MERCHANT_ITEMS, BOSS, CLASSES } from './data.js';
+import { render, renderInv, updateUI } from './render.js';
+
 // --- Game State and Logic ---
-const G = {
+export const G = {
   rng: rngFromSeed(),
   map: [],
   seen: [], // fog of war
@@ -557,3 +561,5 @@ function showWinScreen(){
   modal.appendChild(card);
   document.body.appendChild(modal);
 }
+
+export { log, move, entityAt, gainXP, maybeDrop, tick, wait, ability, pickup, descend, discardItem, useItem, newPlayer, genMap };

@@ -1,5 +1,5 @@
 // --- Game Constants ---
-const T = {
+export const T = {
   WALL: 1,
   FLOOR: 0,
   STAIRS: 2,
@@ -8,11 +8,11 @@ const T = {
   FOUNTAIN: 5,
   TRAP: 6
 };
-const TILE_SIZE = 24; // pixels per tile
-const MAP_W = 40, MAP_H = 30; // 40x30 -> 960x720 canvas
+export const TILE_SIZE = 24; // pixels per tile
+export const MAP_W = 40, MAP_H = 30; // 40x30 -> 960x720 canvas
 
 // Monsters (D&D-ish)
-const MONSTERS = [
+export const MONSTERS = [
   {name:'Goblin', icon:'👺', hp:6, atk:2, mp:0, speed:2, attack:'melee', xp:4},
   {name:'Skeleton Archer', icon:'🏹', hp:8, atk:3, mp:0, speed:1, attack:'ranged', range:4, xp:6},
   {name:'Orc', icon:'👹', hp:12, atk:4, mp:2, speed:1, attack:'melee', xp:10},
@@ -22,7 +22,7 @@ const MONSTERS = [
   {name:'Young Dragon', icon:'🐉', hp:28, atk:8, mp:10, speed:2, attack:'magic', range:5, cost:3, xp:30}
 ];
 
-const LOOT = {
+export const LOOT = {
   common: [
     {name:'Potion of Healing', type:'potion', heal:10},
     {name:'Throwing Dagger', type:'throw', dmg:5},
@@ -41,15 +41,15 @@ const LOOT = {
   ]
 };
 
-const MERCHANT_ITEMS = [
+export const MERCHANT_ITEMS = [
   {name:'Sword +3', type:'equip', atk:+3, cost:100},
   {name:'Staff +3', type:'equip', atk:+3, mp:+12, cost:100},
   {name:'Plate Armor +3', type:'equip', def:+3, hp:+10, cost:100}
 ];
 
-const BOSS = {name:'Crystal Guardian', icon:'💠', hp:40, atk:9, mp:6, speed:1, attack:'magic', range:5, cost:3, xp:0};
+export const BOSS = {name:'Crystal Guardian', icon:'💠', hp:40, atk:9, mp:6, speed:1, attack:'magic', range:5, cost:3, xp:0};
 
-const CLASSES = {
+export const CLASSES = {
   warrior: { hp: 30, mp: 0, atk: 5, def: 2, abilityCd: 5, icon:'⚔️' },
   mage:    { hp: 18, mp: 20, atk: 2, def: 1, abilityCd: 0, icon:'🧙' },
   hunter:  { hp: 24, mp: 8,  atk: 3, def: 1, abilityCd: 0, icon:'🏹', ammo: 40, ammoMax: 40 }
