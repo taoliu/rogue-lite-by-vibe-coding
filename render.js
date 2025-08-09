@@ -75,6 +75,8 @@ if (USE_WEBGL) {
   // Set up a basic Three.js scene
   renderer3d = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer3d.setClearColor(0xdddddd);
+  renderer3d.shadowMap.enabled = true;
+  renderer3d.shadowMap.type = THREE.PCFSoftShadowMap;
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0xdddddd);
   camera = new THREE.PerspectiveCamera(55, canvas.width / canvas.height, 0.1, 1000);
@@ -84,6 +86,7 @@ if (USE_WEBGL) {
   scene.add(ambient);
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
   dirLight.position.set(10, 20, 10);
+  dirLight.castShadow = true;
   scene.add(dirLight);
 } else {
   // Original 2D canvas setup
@@ -112,37 +115,61 @@ function drawTile(x,y,t){
   else if(t===T.TRAP){ rect(px,py,TILE_SIZE,TILE_SIZE,'#dddddd'); ctx.fillStyle='#000'; ctx.fillRect(px+4,py+4,16,16); }
 }
 
+function enableShadows(obj){
+  obj.traverse(child=>{
+    if(child.isMesh){
+      child.castShadow = true;
+      child.receiveShadow = true;
+    }
+  });
+}
+
 function createCharacterMesh(color){
-  const mat = new THREE.MeshLambertMaterial({color});
+  const mat = new THREE.MeshStandardMaterial({color});
   const group = new THREE.Group();
 
-  // torso
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.6,1.2,0.3), mat);
-  torso.position.y = 0.9;
+  // torso (smaller body)
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.9,0.25), mat);
+  torso.position.y = 0.75;
   group.add(torso);
 
-  // head
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.35,16,16), mat);
+  // head (larger)
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.5,16,16), mat);
   head.position.y = 1.7;
   group.add(head);
+
+  // eyes
+  const eyeGeom = new THREE.SphereGeometry(0.07,8,8);
+  const eyeMat = new THREE.MeshStandardMaterial({color:0x000000});
+  const eyeL = new THREE.Mesh(eyeGeom, eyeMat);
+  eyeL.position.set(-0.15,1.7,0.28);
+  const eyeR = eyeL.clone();
+  eyeR.position.x = 0.15;
+  group.add(eyeL, eyeR);
+
+  // belt detail
+  const belt = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.1,0.27), new THREE.MeshStandardMaterial({color:0x333333}));
+  belt.position.y = 0.55;
+  group.add(belt);
 
   // arms
   const armGeom = new THREE.CylinderGeometry(0.12,0.12,0.8,8);
   const armL = new THREE.Mesh(armGeom, mat);
-  armL.position.set(-0.45,1.1,0);
+  armL.position.set(-0.4,1.0,0);
   const armR = armL.clone();
-  armR.position.x = 0.45;
+  armR.position.x = 0.4;
   group.add(armL); group.add(armR);
 
   // legs
   const legGeom = new THREE.CylinderGeometry(0.15,0.15,0.9,8);
   const legL = new THREE.Mesh(legGeom, mat);
-  legL.position.set(-0.2,0.45,0);
+  legL.position.set(-0.18,0.45,0);
   const legR = legL.clone();
-  legR.position.x = 0.2;
+  legR.position.x = 0.18;
   group.add(legL); group.add(legR);
 
   group.userData = {legL, legR, armL, armR};
+  enableShadows(group);
   return group;
 }
 
@@ -248,6 +275,7 @@ function createItemMesh(){
     new THREE.MeshLambertMaterial({color:0xffd166})
   );
   mesh.position.y=0.3;
+  enableShadows(mesh);
   return mesh;
 }
 
@@ -271,11 +299,11 @@ function createPlayerMesh(cls){
     sword.position.set(0.55,1.0,0); sword.rotation.x=Math.PI/2; group.add(sword);
     const shield=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,0.1,16),new THREE.MeshLambertMaterial({color:0x555555}));
     shield.position.set(-0.6,1.0,0); shield.rotation.z=Math.PI/2; group.add(shield);
-    const helm=new THREE.Mesh(new THREE.SphereGeometry(0.35,16,16,0,Math.PI*2,0,Math.PI/2),new THREE.MeshLambertMaterial({color:0x555555}));
+    const helm=new THREE.Mesh(new THREE.SphereGeometry(0.5,16,16,0,Math.PI*2,0,Math.PI/2),new THREE.MeshLambertMaterial({color:0x555555}));
     helm.position.y=1.7; group.add(helm);
   } else if(cls==='mage'){
-    const hat=new THREE.Mesh(new THREE.ConeGeometry(0.3,0.5,8),new THREE.MeshLambertMaterial({color:0x0000ff}));
-    hat.position.y=1.9; group.add(hat);
+    const hat=new THREE.Mesh(new THREE.ConeGeometry(0.4,0.6,8),new THREE.MeshLambertMaterial({color:0x0000ff}));
+    hat.position.y=2.0; group.add(hat);
     const staff=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,1.2,8),new THREE.MeshLambertMaterial({color:0x8b4513}));
     staff.position.set(0.55,1.1,0); staff.rotation.x=Math.PI/2;
     const orb=new THREE.Mesh(new THREE.SphereGeometry(0.1,8,8),new THREE.MeshLambertMaterial({color:0x00ffff}));
@@ -286,26 +314,29 @@ function createPlayerMesh(cls){
     const quiver=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,0.8,8),new THREE.MeshLambertMaterial({color:0x552200}));
     quiver.position.set(-0.6,1.2,0.1); group.add(quiver);
   }
+  enableShadows(group);
   return group;
 }
 
 function createMonsterMesh(monster){
   const name=monster.name;
-  if(name==='Goblin') return createGoblinMesh();
-  if(name==='Skeleton Archer'){
-    const m=createCharacterMesh(0xffffff);
+  let m;
+  if(name==='Goblin') m = createGoblinMesh();
+  else if(name==='Skeleton Archer'){
+    m = createCharacterMesh(0xffffff);
     const bow=new THREE.Mesh(new THREE.TorusGeometry(0.3,0.02,8,16,Math.PI),new THREE.MeshLambertMaterial({color:0x996633}));
     bow.rotation.y=Math.PI/2; bow.position.set(0.55,1.0,0); m.add(bow);
-    return m;
   }
-  if(name==='Orc') return createOrcMesh();
-  if(name==='Zombie') return createZombieMesh();
-  if(name==='Mimic') return createChestMesh();
-  if(name==='Ogre') return createOgreMesh();
-  if(name==='Young Dragon') return createDragonMesh();
-  if(name==='Crystal Guardian') return createCrystalGuardianMesh();
-  if(monster.type==='merchant') return createMerchantMesh();
-  return createCharacterMesh(0xff0000);
+  else if(name==='Orc') m = createOrcMesh();
+  else if(name==='Zombie') m = createZombieMesh();
+  else if(name==='Mimic') m = createChestMesh();
+  else if(name==='Ogre') m = createOgreMesh();
+  else if(name==='Young Dragon') m = createDragonMesh();
+  else if(name==='Crystal Guardian') m = createCrystalGuardianMesh();
+  else if(monster.type==='merchant') m = createMerchantMesh();
+  else m = createCharacterMesh(0xff0000);
+  enableShadows(m);
+  return m;
 }
 
 function buildScene3D(){
@@ -315,6 +346,7 @@ function buildScene3D(){
   scene.add(ambient);
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
   dirLight.position.set(10, 20, 10);
+  dirLight.castShadow = true;
   scene.add(dirLight);
   tileMeshes = Array.from({length:MAP_H},()=>Array(MAP_W));
   chestMeshes = [];
@@ -331,15 +363,19 @@ function buildScene3D(){
     else if (t === T.STAIRS){ h = 0.02; }
     const base = new THREE.Mesh(new THREE.BoxGeometry(1,h,1), mat);
     base.position.y = h/2;
+    base.receiveShadow = true;
+    base.castShadow = (t === T.WALL);
     group.add(base);
     if (t === T.STAIRS) {
       group.add(createStairsMesh());
     } else if (t === T.FOUNTAIN) {
       group.add(createFountainMesh());
     }
+    enableShadows(group);
     if (t === T.CHEST) {
       const chest = createChestMesh();
       chest.position.set(x, 0, y);
+      enableShadows(chest);
       scene.add(chest);
       chestMeshes.push({ mesh: chest, x, y });
     }
