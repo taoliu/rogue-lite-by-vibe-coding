@@ -6,7 +6,8 @@ import { render, renderInv, updateUI, resetScene } from './render.js';
 export const G = {
   rng: rngFromSeed(),
   map: [],
-  seen: [], // fog of war
+  seen: [], // explored tiles
+  visible: [], // currently visible tiles
   entities: [], // monsters
   items: [], // loose items on ground
   player: null,
@@ -73,6 +74,7 @@ function genMap() {
   const w=MAP_W,h=MAP_H;
   const map = Array.from({length:h},()=>Array(w).fill(T.WALL));
   const seen= Array.from({length:h},()=>Array(w).fill(false));
+  const visible= Array.from({length:h},()=>Array(w).fill(false));
 
   const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
   function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=(rand()*(i+1))|0; [a[i],a[j]]=[a[j],a[i]]; } return a; }
@@ -136,7 +138,7 @@ function genMap() {
     if(map[ty][tx]===T.FLOOR && !(tx===1&&ty===1)) map[ty][tx]=T.TRAP;
   }
 
-  G.map = map; G.seen = seen; G.effects=[];
+  G.map = map; G.seen = seen; G.visible = visible; G.effects=[];
   resetScene(); // force 3D scene rebuild
 
   // place monsters with scaling difficulty
@@ -232,6 +234,7 @@ function gainXP(x){
 function openChest(){
   if(G.map[G.player.y][G.player.x]!==T.CHEST){ log('No chest here.'); return; }
   G.map[G.player.y][G.player.x]=T.FLOOR;
+  resetScene();
   const isRare = Math.random()<0.5;
   const pool = isRare? LOOT.rare : LOOT.common;
   const item = JSON.parse(JSON.stringify(pool[(Math.random()*pool.length)|0]));
@@ -273,6 +276,7 @@ function pickup(){
   G.player.inv.push(obj);
   log(`Picked up ${obj.name}.`);
   renderInv();
+  render();
 }
 
 function applyEquipStats(it, sign){
@@ -306,14 +310,19 @@ function discardItem(i){
   G.items.push({x:G.player.x, y:G.player.y, item:it});
   log(`Dropped ${it.name}.`);
   updateUI();
+  render();
 }
 
 // --- Field of View (simple LOS radius) ---
 function fov(){
   const r=8; const {x:px,y:py}=G.player;
+  for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) G.visible[y][x]=false;
   for(let y=py-r;y<=py+r;y++) for(let x=px-r;x<=px+r;x++){
     if(!between(x,0,MAP_W-1)||!between(y,0,MAP_H-1)) continue;
-    if(Math.hypot(x-px,y-py)<=r){ G.seen[y][x]=true; }
+    if(Math.hypot(x-px,y-py)<=r){
+      G.visible[y][x]=true;
+      G.seen[y][x]=true;
+    }
   }
 }
 
