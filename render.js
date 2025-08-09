@@ -14,9 +14,11 @@ export function resetScene() {
 
 if (USE_WEBGL) {
   // Set up a basic Three.js scene
-  renderer3d = new THREE.WebGLRenderer({ canvas });
+  renderer3d = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer3d.setSize(canvas.width, canvas.height);
+  renderer3d.setClearColor(0xffffff);
   scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xffffff);
   camera = new THREE.PerspectiveCamera(60, canvas.width / canvas.height, 0.1, 1000);
   camera.position.set(MAP_W / 2, 30, MAP_H * 1.3);
   camera.lookAt(MAP_W / 2, 0, MAP_H / 2);
@@ -37,38 +39,55 @@ function rect(x,y,w,h,col){ ctx.fillStyle=col; ctx.fillRect(x,y,w,h); }
 
 function drawTile(x,y,t){
   const px=x*TILE_SIZE, py=y*TILE_SIZE;
-  if(t===T.WALL) rect(px,py,TILE_SIZE,TILE_SIZE,'#1a2336');
-  else if(t===T.FLOOR) rect(px,py,TILE_SIZE,TILE_SIZE,'#0f1522');
-  else if(t===T.STAIRS){ rect(px,py,TILE_SIZE,TILE_SIZE,'#0f1522'); ctx.fillStyle='#b8c1ff'; ctx.fillRect(px+8,py+8,8,8); }
-  else if(t===T.CHEST){ rect(px,py,TILE_SIZE,TILE_SIZE,'#0f1522'); ctx.fillStyle='#8b5e34'; ctx.fillRect(px+5,py+6,14,12); ctx.fillStyle='#d4af37'; ctx.fillRect(px+5,py+12,14,2); }
-  else if(t===T.WATER){ rect(px,py,TILE_SIZE,TILE_SIZE,'#113355'); }
-  else if(t===T.FOUNTAIN){ rect(px,py,TILE_SIZE,TILE_SIZE,'#0f1522'); ctx.fillStyle='#4fc3f7'; ctx.beginPath(); ctx.arc(px+TILE_SIZE/2, py+TILE_SIZE/2, 6, 0, Math.PI*2); ctx.fill(); }
-  else if(t===T.TRAP){ rect(px,py,TILE_SIZE,TILE_SIZE,'#0f1522'); ctx.fillStyle='#000'; ctx.fillRect(px+4,py+4,16,16); }
+  if(t===T.WALL) rect(px,py,TILE_SIZE,TILE_SIZE,'#000000');
+  else if(t===T.FLOOR) rect(px,py,TILE_SIZE,TILE_SIZE,'#ffffff');
+  else if(t===T.STAIRS){ rect(px,py,TILE_SIZE,TILE_SIZE,'#ffffff'); ctx.fillStyle='#b8c1ff'; ctx.fillRect(px+8,py+8,8,8); }
+  else if(t===T.CHEST){ rect(px,py,TILE_SIZE,TILE_SIZE,'#ffffff'); ctx.fillStyle='#8b5e34'; ctx.fillRect(px+5,py+6,14,12); ctx.fillStyle='#d4af37'; ctx.fillRect(px+5,py+12,14,2); }
+  else if(t===T.WATER){ rect(px,py,TILE_SIZE,TILE_SIZE,'#cceeff'); }
+  else if(t===T.FOUNTAIN){ rect(px,py,TILE_SIZE,TILE_SIZE,'#ffffff'); ctx.fillStyle='#4fc3f7'; ctx.beginPath(); ctx.arc(px+TILE_SIZE/2, py+TILE_SIZE/2, 6, 0, Math.PI*2); ctx.fill(); }
+  else if(t===T.TRAP){ rect(px,py,TILE_SIZE,TILE_SIZE,'#ffffff'); ctx.fillStyle='#000'; ctx.fillRect(px+4,py+4,16,16); }
+}
+
+function createCharacterMesh(color){
+  const group = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.3, 0.3, 0.8, 8),
+    new THREE.MeshLambertMaterial({ color })
+  );
+  body.position.y = 0.4;
+  group.add(body);
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.25, 8, 8),
+    new THREE.MeshLambertMaterial({ color: 0xffe0bd })
+  );
+  head.position.y = 0.9;
+  group.add(head);
+  return group;
 }
 
 function buildScene3D(){
   scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xffffff);
   const ambient = new THREE.AmbientLight(0x888888);
   scene.add(ambient);
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
   dirLight.position.set(10, 20, 10);
   scene.add(dirLight);
-  const geo = new THREE.BoxGeometry(1, 1, 1);
   for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
     const t = G.map[y][x];
-    let color = 0x0f1522;
-    if (t === T.WALL) color = 0x1a2336;
+    let color = 0xffffff;
+    if (t === T.WALL) color = 0x000000;
     else if (t === T.STAIRS) color = 0xb8c1ff;
     else if (t === T.WATER) color = 0x113355;
-    const cube = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color }));
+    const cube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color }));
     cube.position.set(x, 0, y);
     scene.add(cube);
   }
-  playerMesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color: 0xffff00 }));
+  playerMesh = createCharacterMesh(0xffff00);
   scene.add(playerMesh);
   entityMeshes = [];
   for (const e of G.entities) {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color: 0xffffff }));
+    const mesh = createCharacterMesh(0xff0000);
     mesh.position.set(e.x, 0, e.y);
     scene.add(mesh);
     entityMeshes.push({ mesh, e });
@@ -80,16 +99,18 @@ export function render() {
   if (!G.player) return;
   if (!USE_WEBGL) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     // tiles
     for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
       const seen = G.seen[y][x];
-      if (!seen) { rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, '#07090f'); continue; }
+      if (!seen) { rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, '#ffffff'); continue; }
       drawTile(x, y, G.map[y][x]);
     }
     // items
     for (const it of G.items) { if (!G.seen[it.y][it.x]) continue; ctx.fillStyle = '#ffd166'; ctx.fillRect(it.x * TILE_SIZE + 10, it.y * TILE_SIZE + 10, 4, 4); }
     // entities (monsters)
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = '#000';
     for (const e of G.entities) {
       if (!G.seen[e.y][e.x]) continue;
       const px = e.x * TILE_SIZE + TILE_SIZE / 2, py = e.y * TILE_SIZE + TILE_SIZE / 2;
@@ -97,6 +118,7 @@ export function render() {
     }
     // player
     const px = G.player.x * TILE_SIZE + TILE_SIZE / 2, py = G.player.y * TILE_SIZE + TILE_SIZE / 2;
+    ctx.fillStyle = '#000';
     ctx.fillText(G.player.icon || '@', px, py);
 
     // ability effects
@@ -106,22 +128,28 @@ export function render() {
         const cx = fx.x * TILE_SIZE + TILE_SIZE / 2, cy = fx.y * TILE_SIZE + TILE_SIZE / 2;
         const ang = p * Math.PI * 2;
         ctx.strokeStyle = fx.color || 'rgba(255,255,0,0.7)'; ctx.lineWidth = 2;
+        ctx.globalAlpha = 1 - p;
         ctx.beginPath(); ctx.moveTo(cx, cy);
         ctx.lineTo(cx + Math.cos(ang) * fx.r, cy + Math.sin(ang) * fx.r);
         ctx.stroke();
+        ctx.globalAlpha = 1;
       } else if (fx.type === 'fireball') {
         const ex = fx.x * TILE_SIZE + TILE_SIZE / 2, ey = fx.y * TILE_SIZE + TILE_SIZE / 2;
         ctx.strokeStyle = fx.color || 'rgba(255,80,0,0.5)'; ctx.lineWidth = 2;
+        ctx.globalAlpha = 1 - p;
         ctx.beginPath(); ctx.arc(ex, ey, fx.r * p, 0, Math.PI * 2); ctx.stroke();
+        ctx.globalAlpha = 1;
       } else if (fx.type === 'arrow') {
         const x1 = fx.x1 * TILE_SIZE + TILE_SIZE / 2, y1 = fx.y1 * TILE_SIZE + TILE_SIZE / 2;
         const x2 = fx.x2 * TILE_SIZE + TILE_SIZE / 2, y2 = fx.y2 * TILE_SIZE + TILE_SIZE / 2;
         const cx = x1 + (x2 - x1) * p, cy = y1 + (y2 - y1) * p;
         ctx.strokeStyle = fx.color || '#fff'; ctx.lineWidth = 2;
+        ctx.globalAlpha = 1 - p;
         ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(cx, cy); ctx.stroke();
         ctx.fillStyle = fx.color || '#fff';
         if (fx.icon) { ctx.fillText(fx.icon, cx, cy); }
         else ctx.fillRect(cx - 2, cy - 2, 4, 4);
+        ctx.globalAlpha = 1;
       } else if (fx.type === 'circle') {
         const ex = fx.x * TILE_SIZE + TILE_SIZE / 2, ey = fx.y * TILE_SIZE + TILE_SIZE / 2;
         ctx.strokeStyle = fx.color; ctx.lineWidth = 2;
