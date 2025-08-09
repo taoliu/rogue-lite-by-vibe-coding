@@ -318,7 +318,7 @@ function discardItem(i){
 
 // --- Field of View (simple LOS radius) ---
 function fov(){
-  const r=8; const {x:px,y:py}=G.player;
+  const r=10; const {x:px,y:py}=G.player;
   for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) G.visible[y][x]=false;
   for(let y=py-r;y<=py+r;y++) for(let x=px-r;x<=px+r;x++){
     if(!between(x,0,MAP_W-1)||!between(y,0,MAP_H-1)) continue;
@@ -352,6 +352,7 @@ function move(dx,dy){
   if(m){
     if(m.type==='merchant'){ openShop(m); return; }
     // attack melee
+    playEffect({type:'slash', x1:G.player.x, y1:G.player.y, x2:m.x, y2:m.y, color:'rgba(255,0,0,0.8)'}, 100);
     const dmg = Math.max(1, G.player.atk - (m.def||0));
     m.hp -= dmg; log(`You hit the ${m.name} for ${dmg}.`);
     if(m.hp<=0){
@@ -363,7 +364,9 @@ function move(dx,dy){
     tick();
     return;
   }
+  const oldX=G.player.x, oldY=G.player.y;
   G.player.x=nx; G.player.y=ny;
+  playEffect({type:'move', x1:oldX, y1:oldY, x2:nx, y2:ny});
   const tile = G.map[ny][nx];
   if(tile===T.FOUNTAIN){
     G.player.hp = Math.min(G.player.hpMax, G.player.hp+5);
@@ -507,7 +510,10 @@ function descend(){
 async function enemyTurn(){
   for(const m of G.entities){
     if(m.type==='merchant') continue;
-    for(let step=0; step<(m.speed||1); step++){
+    let steps = m.speed || 1;
+    const intSteps = Math.floor(steps);
+    if(Math.random() < steps - intSteps) steps = intSteps + 1; else steps = intSteps;
+    for(let step=0; step<steps; step++){
       const dx = G.player.x - m.x; const dy = G.player.y - m.y; const dist = Math.hypot(dx,dy);
       if(m.attack==='ranged' && dist <= (m.range||4) && hasLineOfSight(m.x,m.y,G.player.x,G.player.y)){
         await playEffect({type:'arrow', x1:m.x, y1:m.y, x2:G.player.x, y2:G.player.y, color:'rgba(255,0,0,0.6)'});
@@ -527,14 +533,18 @@ async function enemyTurn(){
         const nx = m.x + (Math.abs(dx)>Math.abs(dy)? sdx : 0);
         const ny = m.y + (Math.abs(dy)>=Math.abs(dx)? sdy : 0);
         if(nx===G.player.x && ny===G.player.y){
+          await playEffect({type:'slash', x1:m.x, y1:m.y, x2:G.player.x, y2:G.player.y, color:'rgba(255,0,0,0.8)'}, 100);
           const dmg = Math.max(1, (m.atk||2) - G.player.def);
           G.player.hp -= dmg; log(`${m.name} hits you for ${dmg}.`);
           if(G.player.hp<=0){ gameOver(); return; }
           break;
-        } else if(isWalkable(nx,ny) && !entityAt(nx,ny)) { m.x=nx; m.y=ny; }
+        } else if(isWalkable(nx,ny) && !entityAt(nx,ny)) {
+          const ox=m.x, oy=m.y; m.x=nx; m.y=ny;
+          await playEffect({type:'move', x1:ox, y1:oy, x2:nx, y2:ny});
+        }
       } else if(Math.random()<0.3){
         const dirs=[[1,0],[-1,0],[0,1],[0,-1]]; const [ax,ay]=dirs[(Math.random()*4)|0];
-        const nx=m.x+ax, ny=m.y+ay; if(isWalkable(nx,ny) && !entityAt(nx,ny)) { m.x=nx; m.y=ny; }
+        const nx=m.x+ax, ny=m.y+ay; if(isWalkable(nx,ny) && !entityAt(nx,ny)) { const ox=m.x, oy=m.y; m.x=nx; m.y=ny; await playEffect({type:'move', x1:ox, y1:oy, x2:nx, y2:ny}); }
       }
     }
   }
