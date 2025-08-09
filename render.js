@@ -12,6 +12,38 @@ let ctx, renderer3d, scene, camera, playerMesh,
   entityMeshes = [], itemMeshes = [], chestMeshes = [], tileMeshes = [], fxGroup,
   sceneBuilt = false;
 
+// wall rendering assets
+let wallCanvas, wallPattern, wallTexture;
+let wallMaterial = new THREE.MeshLambertMaterial({color:0xcccccc});
+const floorMaterial = new THREE.MeshLambertMaterial({color:0xdddddd});
+
+export function randomizeWallTexture(){
+  const size = 64;
+  wallCanvas = document.createElement('canvas');
+  wallCanvas.width = wallCanvas.height = size;
+  const c = wallCanvas.getContext('2d');
+  // mortar base
+  c.fillStyle = '#aaaaaa';
+  c.fillRect(0,0,size,size);
+  const brickW = 32, brickH = 16;
+  for(let y=0;y<size;y+=brickH){
+    const offset = (y/brickH)%2 ? brickW/2 : 0;
+    for(let x=-offset;x<size;x+=brickW){
+      const shade = 180 + Math.floor(Math.random()*40);
+      c.fillStyle = `rgb(${shade},${shade},${shade})`;
+      c.fillRect(x+1,y+1,brickW-2,brickH-2);
+    }
+  }
+  wallTexture = new THREE.CanvasTexture(wallCanvas);
+  wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
+  wallMaterial.map = wallTexture;
+  wallTexture.needsUpdate = true;
+  wallMaterial.needsUpdate = true;
+  wallPattern = null; // will rebuild for 2D when needed
+}
+
+randomizeWallTexture();
+
 function resizeCanvas(){
   const w = canvas.clientWidth;
   const h = w * 0.75;
@@ -42,11 +74,11 @@ export function resetScene() {
 if (USE_WEBGL) {
   // Set up a basic Three.js scene
   renderer3d = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer3d.setClearColor(0xffffff);
+  renderer3d.setClearColor(0xdddddd);
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xffffff);
-  camera = new THREE.PerspectiveCamera(60, canvas.width / canvas.height, 0.1, 1000);
-  camera.position.set(MAP_W / 2, 30, MAP_H * 1.3);
+  scene.background = new THREE.Color(0xdddddd);
+  camera = new THREE.PerspectiveCamera(55, canvas.width / canvas.height, 0.1, 1000);
+  camera.position.set(MAP_W / 2, 20, MAP_H * 1.1);
   camera.lookAt(MAP_W / 2, 0, MAP_H / 2);
   const ambient = new THREE.AmbientLight(0x888888);
   scene.add(ambient);
@@ -67,13 +99,17 @@ function rect(x,y,w,h,col){ ctx.fillStyle=col; ctx.fillRect(x,y,w,h); }
 
 function drawTile(x,y,t){
   const px=x*TILE_SIZE, py=y*TILE_SIZE;
-  if(t===T.WALL) rect(px,py,TILE_SIZE,TILE_SIZE,'#000000');
-  else if(t===T.FLOOR) rect(px,py,TILE_SIZE,TILE_SIZE,'#ffffff');
-  else if(t===T.STAIRS){ rect(px,py,TILE_SIZE,TILE_SIZE,'#ffffff'); ctx.fillStyle='#654321'; ctx.fillRect(px+8,py+8,8,8); }
-  else if(t===T.CHEST){ rect(px,py,TILE_SIZE,TILE_SIZE,'#ffffff'); ctx.fillStyle='#8b5e34'; ctx.fillRect(px+5,py+6,14,12); ctx.fillStyle='#d4af37'; ctx.fillRect(px+5,py+12,14,2); }
+  if(t===T.WALL){
+    if(!wallPattern) wallPattern = ctx.createPattern(wallCanvas,'repeat');
+    ctx.fillStyle = wallPattern;
+    ctx.fillRect(px,py,TILE_SIZE,TILE_SIZE);
+  }
+  else if(t===T.FLOOR) rect(px,py,TILE_SIZE,TILE_SIZE,'#dddddd');
+  else if(t===T.STAIRS){ rect(px,py,TILE_SIZE,TILE_SIZE,'#dddddd'); ctx.fillStyle='#654321'; ctx.fillRect(px+8,py+8,8,8); }
+  else if(t===T.CHEST){ rect(px,py,TILE_SIZE,TILE_SIZE,'#dddddd'); ctx.fillStyle='#8b5e34'; ctx.fillRect(px+5,py+6,14,12); ctx.fillStyle='#d4af37'; ctx.fillRect(px+5,py+12,14,2); }
   else if(t===T.WATER){ rect(px,py,TILE_SIZE,TILE_SIZE,'#cceeff'); }
-  else if(t===T.FOUNTAIN){ rect(px,py,TILE_SIZE,TILE_SIZE,'#ffffff'); ctx.fillStyle='#4fc3f7'; ctx.beginPath(); ctx.arc(px+TILE_SIZE/2, py+TILE_SIZE/2, 6, 0, Math.PI*2); ctx.fill(); }
-  else if(t===T.TRAP){ rect(px,py,TILE_SIZE,TILE_SIZE,'#ffffff'); ctx.fillStyle='#000'; ctx.fillRect(px+4,py+4,16,16); }
+  else if(t===T.FOUNTAIN){ rect(px,py,TILE_SIZE,TILE_SIZE,'#dddddd'); ctx.fillStyle='#4fc3f7'; ctx.beginPath(); ctx.arc(px+TILE_SIZE/2, py+TILE_SIZE/2, 6, 0, Math.PI*2); ctx.fill(); }
+  else if(t===T.TRAP){ rect(px,py,TILE_SIZE,TILE_SIZE,'#dddddd'); ctx.fillStyle='#000'; ctx.fillRect(px+4,py+4,16,16); }
 }
 
 function createCharacterMesh(color){
@@ -274,7 +310,7 @@ function createMonsterMesh(monster){
 
 function buildScene3D(){
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xffffff);
+  scene.background = new THREE.Color(0xdddddd);
   const ambient = new THREE.AmbientLight(0x888888);
   scene.add(ambient);
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -288,12 +324,12 @@ function buildScene3D(){
     group.position.set(x,0,y);
     scene.add(group);
     tileMeshes[y][x] = group;
-    let color = 0xffffff;
+    let mat = floorMaterial;
     let h = 0.1;
-    if (t === T.WALL){ color = 0x000000; h = 0.7; }
-    else if (t === T.WATER){ color = 0x113355; h = 0.05; }
+    if (t === T.WALL){ h = 0.7; mat = wallMaterial; }
+    else if (t === T.WATER){ mat = new THREE.MeshLambertMaterial({color:0x113355}); h = 0.05; }
     else if (t === T.STAIRS){ h = 0.02; }
-    const base = new THREE.Mesh(new THREE.BoxGeometry(1,h,1), new THREE.MeshLambertMaterial({color}));
+    const base = new THREE.Mesh(new THREE.BoxGeometry(1,h,1), mat);
     base.position.y = h/2;
     group.add(base);
     if (t === T.STAIRS) {
@@ -340,12 +376,12 @@ export function render() {
   if (!G.player) return;
   if (!USE_WEBGL) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = '#dddddd';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     // tiles
     for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
       const seen = G.seen[y][x];
-      if (!seen) { rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, '#ffffff'); continue; }
+      if (!seen) { rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, '#dddddd'); continue; }
       const t = G.map[y][x];
       drawTile(x, y, t === T.CHEST && !G.visible[y][x] ? T.FLOOR : t);
     }
@@ -421,7 +457,7 @@ export function render() {
     for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
       tileMeshes[y][x].visible = G.visible[y][x];
     }
-    camera.position.set(G.player.x, 20, G.player.y + 20);
+    camera.position.set(G.player.x, 15, G.player.y + 15);
     camera.lookAt(G.player.x, 0, G.player.y);
     fxGroup.clear();
     for (const fx of G.effects) {
@@ -501,8 +537,8 @@ function renderMinimap(){
   for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++){
     if(!G.seen[y][x]) continue;
     const t=G.map[y][x];
-    let col='#eee';
-    if(t===T.WALL) col='#000';
+    let col='#ddd';
+    if(t===T.WALL) col='#888';
     else if(t===T.WATER) col='#55f';
     else if(t===T.STAIRS) col='#654321';
     else if(t===T.FOUNTAIN) col='#4fc3f7';
