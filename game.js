@@ -366,7 +366,7 @@ function move(dx,dy){
   }
   const oldX=G.player.x, oldY=G.player.y;
   G.player.x=nx; G.player.y=ny;
-  playEffect({type:'move', x1:oldX, y1:oldY, x2:nx, y2:ny});
+  // movement animations removed
   const tile = G.map[ny][nx];
   if(tile===T.FOUNTAIN){
     G.player.hp = Math.min(G.player.hpMax, G.player.hp+5);
@@ -540,11 +540,11 @@ async function enemyTurn(){
           break;
         } else if(isWalkable(nx,ny) && !entityAt(nx,ny)) {
           const ox=m.x, oy=m.y; m.x=nx; m.y=ny;
-          await playEffect({type:'move', x1:ox, y1:oy, x2:nx, y2:ny});
+          // movement animations removed
         }
       } else if(Math.random()<0.3){
         const dirs=[[1,0],[-1,0],[0,1],[0,-1]]; const [ax,ay]=dirs[(Math.random()*4)|0];
-        const nx=m.x+ax, ny=m.y+ay; if(isWalkable(nx,ny) && !entityAt(nx,ny)) { const ox=m.x, oy=m.y; m.x=nx; m.y=ny; await playEffect({type:'move', x1:ox, y1:oy, x2:nx, y2:ny}); }
+        const nx=m.x+ax, ny=m.y+ay; if(isWalkable(nx,ny) && !entityAt(nx,ny)) { const ox=m.x, oy=m.y; m.x=nx; m.y=ny; }
       }
     }
   }
@@ -580,7 +580,7 @@ function launchFireworks(){
     const x=(Math.random()*MAP_W)|0;
     const y=(Math.random()*MAP_H)|0;
     const color=`hsl(${(Math.random()*360)|0},100%,70%)`;
-    playEffect({type:'firework',x,y,color,r:TILE_SIZE*2},700);
+    // celebratory firework removed
     setTimeout(spawn,500+Math.random()*500);
   };
   spawn();
