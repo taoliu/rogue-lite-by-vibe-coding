@@ -12,6 +12,25 @@ let ctx, renderer3d, scene, camera, playerMesh,
   entityMeshes = [], itemMeshes = [], chestMeshes = [], tileMeshes = [], fxGroup,
   sceneBuilt = false;
 
+function resizeCanvas(){
+  const w = canvas.clientWidth;
+  const h = w * 0.75;
+  canvas.width = w;
+  canvas.height = h;
+  minimap.width = w/6;
+  minimap.height = h/6;
+  if(renderer3d){
+    renderer3d.setSize(w,h);
+    camera.aspect = w/h;
+    camera.updateProjectionMatrix();
+  }
+  if(ctx){
+    ctx.canvas.width = w;
+    ctx.canvas.height = h;
+  }
+}
+window.addEventListener('resize', resizeCanvas);
+
 export function resetScene() {
   sceneBuilt = false;
   entityMeshes = [];
@@ -23,7 +42,6 @@ export function resetScene() {
 if (USE_WEBGL) {
   // Set up a basic Three.js scene
   renderer3d = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer3d.setSize(canvas.width, canvas.height);
   renderer3d.setClearColor(0xffffff);
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0xffffff);
@@ -42,6 +60,8 @@ if (USE_WEBGL) {
   ctx.textBaseline = 'middle';
   ctx.font = '20px sans-serif';
 }
+
+resizeCanvas();
 
 function rect(x,y,w,h,col){ ctx.fillStyle=col; ctx.fillRect(x,y,w,h); }
 
