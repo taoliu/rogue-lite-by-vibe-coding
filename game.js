@@ -133,6 +133,7 @@ function genMap() {
   }
 
   G.map = map; G.seen = seen; G.effects=[];
+  sceneBuilt = false; // force 3D scene rebuild
 
   // place monsters with scaling difficulty
   G.entities=[];
