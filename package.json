@@ -5,6 +5,7 @@
   "main": "data.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "mkdir -p build && cp rogue_lite_single_file_html_game.html build/index.html && cp *.js build/",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build"
   },
