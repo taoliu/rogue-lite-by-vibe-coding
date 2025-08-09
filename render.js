@@ -6,10 +6,16 @@ import { G, useItem, discardItem } from './game.js';
 // Toggle between classic 2D canvas rendering and experimental 3D using Three.js
 const USE_WEBGL = true;
 const canvas = document.getElementById('view');
-let ctx, renderer3d, scene, camera, playerMesh, entityMeshes = [], sceneBuilt = false;
+let ctx, renderer3d, scene, camera, playerMesh,
+  entityMeshes = [], itemMeshes = [], chestMeshes = [], tileMeshes = [], fxGroup,
+  sceneBuilt = false;
 
 export function resetScene() {
   sceneBuilt = false;
+  entityMeshes = [];
+  itemMeshes = [];
+  chestMeshes = [];
+  tileMeshes = [];
 }
 
 if (USE_WEBGL) {
@@ -65,6 +71,57 @@ function createCharacterMesh(color){
   return group;
 }
 
+function createChestMesh(){
+  const chest = new THREE.Mesh(
+    new THREE.BoxGeometry(0.8,0.5,0.8),
+    new THREE.MeshLambertMaterial({color:0x8b5e34})
+  );
+  chest.position.y=0.25;
+  const band=new THREE.Mesh(
+    new THREE.BoxGeometry(0.8,0.1,0.1),
+    new THREE.MeshLambertMaterial({color:0xd4af37})
+  );
+  band.position.set(0,0.3,0);
+  const g=new THREE.Group(); g.add(chest); g.add(band); return g;
+}
+
+function createItemMesh(){
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.15,8,8),
+    new THREE.MeshLambertMaterial({color:0xffd166})
+  );
+  mesh.position.y=0.3;
+  return mesh;
+}
+
+function createPlayerMesh(cls){
+  const colors={warrior:0x880000,mage:0x000088,hunter:0x006600};
+  const group=createCharacterMesh(colors[cls]||0xffff00);
+  if(cls==='warrior'){
+    const sword=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.05,0.8),new THREE.MeshLambertMaterial({color:0xcccccc}));
+    sword.position.set(0.4,0.4,0); sword.rotation.x=Math.PI/2; group.add(sword);
+  } else if(cls==='mage'){
+    const hat=new THREE.Mesh(new THREE.ConeGeometry(0.3,0.5,8),new THREE.MeshLambertMaterial({color:0x0000ff}));
+    hat.position.y=1.2; group.add(hat);
+  } else if(cls==='hunter'){
+    const bow=new THREE.Mesh(new THREE.TorusGeometry(0.3,0.02,8,16,Math.PI),new THREE.MeshLambertMaterial({color:0x996633}));
+    bow.rotation.y=Math.PI/2; bow.position.set(0.35,0.5,0); group.add(bow);
+  }
+  return group;
+}
+
+function createMonsterMesh(monster){
+  const name=monster.name;
+  if(name==='Goblin') return createCharacterMesh(0x00aa00);
+  if(name==='Skeleton Archer') return createCharacterMesh(0xffffff);
+  if(name==='Orc'){ const m=createCharacterMesh(0x225500); m.scale.set(1.1,1.1,1.1); return m; }
+  if(name==='Zombie') return createCharacterMesh(0x99cc00);
+  if(name==='Mimic') return createChestMesh();
+  if(name==='Ogre'){ const m=createCharacterMesh(0x553300); m.scale.set(1.3,1.3,1.3); return m; }
+  if(name==='Young Dragon'){ const m=createCharacterMesh(0xff0000); m.scale.set(1.5,1.5,1.5); return m; }
+  return createCharacterMesh(0xff0000);
+}
+
 function buildScene3D(){
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0xffffff);
@@ -73,6 +130,8 @@ function buildScene3D(){
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
   dirLight.position.set(10, 20, 10);
   scene.add(dirLight);
+  tileMeshes = Array.from({length:MAP_H},()=>Array(MAP_W));
+  chestMeshes = [];
   for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
     const t = G.map[y][x];
     let color = 0xffffff;
@@ -82,16 +141,32 @@ function buildScene3D(){
     const cube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color }));
     cube.position.set(x, 0, y);
     scene.add(cube);
+    tileMeshes[y][x] = cube;
+    if (t === T.CHEST) {
+      const chest = createChestMesh();
+      chest.position.set(x, 0, y);
+      scene.add(chest);
+      chestMeshes.push({ mesh: chest, x, y });
+    }
   }
-  playerMesh = createCharacterMesh(0xffff00);
+  playerMesh = createPlayerMesh(G.player.cls);
   scene.add(playerMesh);
   entityMeshes = [];
   for (const e of G.entities) {
-    const mesh = createCharacterMesh(0xff0000);
+    const mesh = createMonsterMesh(e);
     mesh.position.set(e.x, 0, e.y);
     scene.add(mesh);
     entityMeshes.push({ mesh, e });
   }
+  itemMeshes = [];
+  for (const it of G.items) {
+    const mesh = createItemMesh();
+    mesh.position.set(it.x, 0, it.y);
+    scene.add(mesh);
+    itemMeshes.push({ mesh, it });
+  }
+  fxGroup = new THREE.Group();
+  scene.add(fxGroup);
   sceneBuilt = true;
 }
 
@@ -105,14 +180,15 @@ export function render() {
     for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
       const seen = G.seen[y][x];
       if (!seen) { rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, '#ffffff'); continue; }
-      drawTile(x, y, G.map[y][x]);
+      const t = G.map[y][x];
+      drawTile(x, y, t === T.CHEST && !G.visible[y][x] ? T.FLOOR : t);
     }
     // items
-    for (const it of G.items) { if (!G.seen[it.y][it.x]) continue; ctx.fillStyle = '#ffd166'; ctx.fillRect(it.x * TILE_SIZE + 10, it.y * TILE_SIZE + 10, 4, 4); }
+    for (const it of G.items) { if (!G.visible[it.y][it.x]) continue; ctx.fillStyle = '#ffd166'; ctx.fillRect(it.x * TILE_SIZE + 10, it.y * TILE_SIZE + 10, 4, 4); }
     // entities (monsters)
     ctx.fillStyle = '#000';
     for (const e of G.entities) {
-      if (!G.seen[e.y][e.x]) continue;
+      if (!G.visible[e.y][e.x]) continue;
       const px = e.x * TILE_SIZE + TILE_SIZE / 2, py = e.y * TILE_SIZE + TILE_SIZE / 2;
       ctx.fillText(e.icon || e.ch || '?', px, py);
     }
@@ -177,9 +253,42 @@ export function render() {
       }
     }
   } else {
-    if (!sceneBuilt || entityMeshes.length !== G.entities.length) buildScene3D();
+    if (!sceneBuilt || entityMeshes.length !== G.entities.length || itemMeshes.length !== G.items.length) buildScene3D();
     playerMesh.position.set(G.player.x, 0, G.player.y);
-    for (const obj of entityMeshes) obj.mesh.position.set(obj.e.x, 0, obj.e.y);
+    for (const obj of entityMeshes) {
+      obj.mesh.position.set(obj.e.x, 0, obj.e.y);
+      obj.mesh.visible = G.visible[obj.e.y][obj.e.x];
+    }
+    for (const obj of itemMeshes) {
+      obj.mesh.visible = G.visible[obj.it.y][obj.it.x];
+    }
+    for (const obj of chestMeshes) {
+      obj.mesh.visible = G.visible[obj.y][obj.x];
+    }
+    for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
+      tileMeshes[y][x].visible = G.seen[y][x];
+    }
+    fxGroup.clear();
+    for (const fx of G.effects) {
+      const p = fx.duration ? fx.elapsed / fx.duration : 0;
+      if (fx.type === 'arrow') {
+        const x = fx.x1 + (fx.x2 - fx.x1) * p;
+        const y = fx.y1 + (fx.y2 - fx.y1) * p;
+        const m = new THREE.Mesh(new THREE.SphereGeometry(0.1,8,8), new THREE.MeshBasicMaterial({color: fx.color || 0xffff00, transparent:true, opacity:1-p}));
+        m.position.set(x,0.5,y);
+        fxGroup.add(m);
+      } else if (fx.type === 'fireball') {
+        const s = (fx.r / TILE_SIZE) * p;
+        const m = new THREE.Mesh(new THREE.SphereGeometry(s,8,8), new THREE.MeshBasicMaterial({color: fx.color || 0xff5000, transparent:true, opacity:1-p}));
+        m.position.set(fx.x,0.5,fx.y);
+        fxGroup.add(m);
+      } else if (fx.type === 'whirlwind') {
+        const ang = p * Math.PI * 2;
+        const m = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.01,6), new THREE.MeshBasicMaterial({color: fx.color || 0xffff00, transparent:true, opacity:1-p}));
+        m.position.set(fx.x + Math.cos(ang)*(fx.r/TILE_SIZE),0.5, fx.y + Math.sin(ang)*(fx.r/TILE_SIZE));
+        fxGroup.add(m);
+      }
+    }
     renderer3d.render(scene, camera);
   }
 }
