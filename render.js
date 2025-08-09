@@ -69,6 +69,7 @@ function buildScene3D(){
 }
 
 function render() {
+  if (!G.player) return;
   if (!USE_WEBGL) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     // tiles
@@ -163,6 +164,7 @@ function renderInv(){
 }
 
 function updateUI(){
+  if(!G.player) return;
   document.getElementById('uiClass').textContent = G.player.cls;
   document.getElementById('uiLvl').textContent = G.player.lvl;
   document.getElementById('uiXP').textContent = `${G.player.xp}/${G.player.nextXp}`;
