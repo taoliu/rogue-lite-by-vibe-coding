@@ -1,6 +1,6 @@
 import { rngFromSeed } from './utils.js';
 import { T, TILE_SIZE, MAP_W, MAP_H, MONSTERS, LOOT, MERCHANT_ITEMS, BOSS, CLASSES } from './data.js';
-import { render, renderInv, updateUI } from './render.js';
+import { render, renderInv, updateUI, resetScene } from './render.js';
 
 // --- Game State and Logic ---
 export const G = {
@@ -137,7 +137,7 @@ function genMap() {
   }
 
   G.map = map; G.seen = seen; G.effects=[];
-  sceneBuilt = false; // force 3D scene rebuild
+  resetScene(); // force 3D scene rebuild
 
   // place monsters with scaling difficulty
   G.entities=[];
