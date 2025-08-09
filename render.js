@@ -49,7 +49,7 @@ function drawTile(x,y,t){
   const px=x*TILE_SIZE, py=y*TILE_SIZE;
   if(t===T.WALL) rect(px,py,TILE_SIZE,TILE_SIZE,'#000000');
   else if(t===T.FLOOR) rect(px,py,TILE_SIZE,TILE_SIZE,'#ffffff');
-  else if(t===T.STAIRS){ rect(px,py,TILE_SIZE,TILE_SIZE,'#ffffff'); ctx.fillStyle='#b8c1ff'; ctx.fillRect(px+8,py+8,8,8); }
+  else if(t===T.STAIRS){ rect(px,py,TILE_SIZE,TILE_SIZE,'#ffffff'); ctx.fillStyle='#654321'; ctx.fillRect(px+8,py+8,8,8); }
   else if(t===T.CHEST){ rect(px,py,TILE_SIZE,TILE_SIZE,'#ffffff'); ctx.fillStyle='#8b5e34'; ctx.fillRect(px+5,py+6,14,12); ctx.fillStyle='#d4af37'; ctx.fillRect(px+5,py+12,14,2); }
   else if(t===T.WATER){ rect(px,py,TILE_SIZE,TILE_SIZE,'#cceeff'); }
   else if(t===T.FOUNTAIN){ rect(px,py,TILE_SIZE,TILE_SIZE,'#ffffff'); ctx.fillStyle='#4fc3f7'; ctx.beginPath(); ctx.arc(px+TILE_SIZE/2, py+TILE_SIZE/2, 6, 0, Math.PI*2); ctx.fill(); }
@@ -57,66 +57,73 @@ function drawTile(x,y,t){
 }
 
 function createCharacterMesh(color){
+  const mat = new THREE.LineBasicMaterial({color});
   const group = new THREE.Group();
 
-  // legs
-  const legGeom = new THREE.CylinderGeometry(0.1,0.1,0.5,6);
-  const legMat = new THREE.MeshLambertMaterial({color});
-  const legL = new THREE.Mesh(legGeom, legMat);
-  legL.position.set(-0.15,0.25,0);
-  const legR = legL.clone();
-  legR.position.x = 0.15;
-  group.add(legL); group.add(legR);
-
   // body
-  const body = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.3,0.3,0.8,8),
-    new THREE.MeshLambertMaterial({color})
-  );
-  body.position.y = 0.9;
+  const bodyGeom = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0,0.6,0),
+    new THREE.Vector3(0,1.6,0)
+  ]);
+  const body = new THREE.Line(bodyGeom, mat);
   group.add(body);
 
+  // legs
+  const legGeom = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0,0,0),
+    new THREE.Vector3(0,-0.6,0)
+  ]);
+  const legL = new THREE.Line(legGeom, mat);
+  legL.position.set(-0.2,0.6,0);
+  const legR = legL.clone();
+  legR.position.x = 0.2;
+  group.add(legL); group.add(legR);
+
   // arms
-  const armGeom = new THREE.CylinderGeometry(0.08,0.08,0.5,6);
-  const armL = new THREE.Mesh(armGeom, new THREE.MeshLambertMaterial({color}));
-  armL.rotation.z = Math.PI/2;
-  armL.position.set(-0.35,0.9,0);
-  const armR = armL.clone();
-  armR.position.x = 0.35;
+  const armGeom = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0,0,0),
+    new THREE.Vector3(0.5,0,0)
+  ]);
+  const armL = new THREE.Line(armGeom, mat);
+  armL.position.set(0,1.2,0);
+  armL.rotation.y = Math.PI;
+  const armR = new THREE.Line(armGeom, mat);
+  armR.position.set(0,1.2,0);
   group.add(armL); group.add(armR);
 
   // head
-  const head = new THREE.Mesh(
-    new THREE.SphereGeometry(0.25,8,8),
-    new THREE.MeshLambertMaterial({color:0xffe0bd})
-  );
-  head.position.y = 1.55;
+  const headPts=[];
+  const segs=12;
+  for(let i=0;i<segs;i++){
+    const t=2*Math.PI*i/segs;
+    headPts.push(new THREE.Vector3(Math.cos(t)*0.25,1.85+Math.sin(t)*0.25,0));
+  }
+  const headGeom=new THREE.BufferGeometry().setFromPoints(headPts);
+  const head=new THREE.LineLoop(headGeom,mat);
   group.add(head);
 
+  group.userData={legL,legR,armL,armR};
   return group;
 }
 
 function createDragonMesh(){
   const g = createCharacterMesh(0xff0000);
-  const wingGeom = new THREE.BoxGeometry(0.1,0.4,1);
-  const mat = new THREE.MeshLambertMaterial({color:0xaa0000});
-  const left = new THREE.Mesh(wingGeom,mat);
-  left.position.set(-0.5,1.0,0);
-  left.rotation.z=Math.PI/4;
+  const mat = new THREE.LineBasicMaterial({color:0xaa0000});
+  const wingGeom = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0,0,0),
+    new THREE.Vector3(0.8,0.5,0)
+  ]);
+  const left = new THREE.Line(wingGeom,mat);
+  left.position.set(0,1.4,0);
   const right = left.clone();
-  right.position.x=0.5;
-  right.rotation.z=-Math.PI/4;
+  right.rotation.y=Math.PI;
   g.add(left); g.add(right);
   g.scale.set(1.5,1.5,1.5);
   return g;
 }
 
 function createCrystalGuardianMesh(){
-  const group=new THREE.Group();
-  const core=new THREE.Mesh(new THREE.OctahedronGeometry(0.6),new THREE.MeshLambertMaterial({color:0x00ffff}));
-  core.position.y=0.6;
-  group.add(core);
-  return group;
+  return createCharacterMesh(0x00ffff);
 }
 
 function createMerchantMesh(){
@@ -130,8 +137,11 @@ function createMerchantMesh(){
 function createStairsMesh(){
   const group=new THREE.Group();
   for(let i=0;i<3;i++){
-    const step=new THREE.Mesh(new THREE.BoxGeometry(1,0.15,1-(i*0.3)),new THREE.MeshLambertMaterial({color:0xb8c1ff}));
-    step.position.set(0,0.075+i*0.15,-0.35+i*0.15);
+    const step=new THREE.Mesh(
+      new THREE.BoxGeometry(1,0.15,1-(i*0.3)),
+      new THREE.MeshLambertMaterial({color:0x654321})
+    );
+    step.position.set(0,-0.075-i*0.15,-0.35+i*0.15);
     group.add(step);
   }
   return group;
@@ -167,6 +177,27 @@ function createItemMesh(){
   );
   mesh.position.y=0.3;
   return mesh;
+}
+
+function updateFigure(mesh, tx, ty, now){
+  if(mesh.userData.tx !== tx || mesh.userData.ty !== ty){
+    mesh.userData.sx = mesh.position.x;
+    mesh.userData.sy = mesh.position.z;
+    mesh.userData.tx = tx;
+    mesh.userData.ty = ty;
+    mesh.userData.start = now;
+  }
+  const p = Math.min(1, (now - (mesh.userData.start||0))/200);
+  mesh.position.x = mesh.userData.sx + (mesh.userData.tx - mesh.userData.sx)*p;
+  mesh.position.z = mesh.userData.sy + (mesh.userData.ty - mesh.userData.sy)*p;
+  const ud = mesh.userData;
+  if(ud.legL){
+    const swing = p < 1 ? Math.sin((now - ud.start)/100) * 0.5 : 0;
+    ud.legL.rotation.x = swing;
+    ud.legR.rotation.x = -swing;
+    ud.armL.rotation.x = -swing;
+    ud.armR.rotation.x = swing;
+  }
 }
 
 function createPlayerMesh(cls){
@@ -222,8 +253,9 @@ function buildScene3D(){
     tileMeshes[y][x] = group;
     let color = 0xffffff;
     let h = 0.1;
-    if (t === T.WALL){ color = 0x000000; h = 1; }
+    if (t === T.WALL){ color = 0x000000; h = 0.7; }
     else if (t === T.WATER){ color = 0x113355; h = 0.05; }
+    else if (t === T.STAIRS){ h = 0.02; }
     const base = new THREE.Mesh(new THREE.BoxGeometry(1,h,1), new THREE.MeshLambertMaterial({color}));
     base.position.y = h/2;
     group.add(base);
@@ -241,10 +273,17 @@ function buildScene3D(){
   }
   playerMesh = createPlayerMesh(G.player.cls);
   scene.add(playerMesh);
+  playerMesh.position.set(G.player.x,0,G.player.y);
+  playerMesh.userData.tx = playerMesh.userData.sx = G.player.x;
+  playerMesh.userData.ty = playerMesh.userData.sy = G.player.y;
+  playerMesh.userData.start = performance.now();
   entityMeshes = [];
   for (const e of G.entities) {
     const mesh = createMonsterMesh(e);
     mesh.position.set(e.x, 0, e.y);
+    mesh.userData.tx = mesh.userData.sx = e.x;
+    mesh.userData.ty = mesh.userData.sy = e.y;
+    mesh.userData.start = performance.now();
     scene.add(mesh);
     entityMeshes.push({ mesh, e });
   }
@@ -319,6 +358,14 @@ export function render() {
         if (fx.icon) { ctx.fillText(fx.icon, cx, cy); }
         else ctx.fillRect(cx - 2, cy - 2, 4, 4);
         ctx.globalAlpha = 1;
+      } else if (fx.type === 'slash') {
+        const x1 = fx.x1 * TILE_SIZE + TILE_SIZE / 2, y1 = fx.y1 * TILE_SIZE + TILE_SIZE / 2;
+        const x2 = fx.x2 * TILE_SIZE + TILE_SIZE / 2, y2 = fx.y2 * TILE_SIZE + TILE_SIZE / 2;
+        ctx.strokeStyle = fx.color || 'red';
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = 1 - p;
+        ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+        ctx.globalAlpha = 1;
       } else if (fx.type === 'circle') {
         const ex = fx.x * TILE_SIZE + TILE_SIZE / 2, ey = fx.y * TILE_SIZE + TILE_SIZE / 2;
         ctx.strokeStyle = fx.color; ctx.lineWidth = 2;
@@ -347,9 +394,10 @@ export function render() {
     }
   } else {
     if (!sceneBuilt || entityMeshes.length !== G.entities.length || itemMeshes.length !== G.items.length) buildScene3D();
-    playerMesh.position.set(G.player.x, 0, G.player.y);
+    const now = performance.now();
+    updateFigure(playerMesh, G.player.x, G.player.y, now);
     for (const obj of entityMeshes) {
-      obj.mesh.position.set(obj.e.x, 0, obj.e.y);
+      updateFigure(obj.mesh, obj.e.x, obj.e.y, now);
       obj.mesh.visible = G.visible[obj.e.y][obj.e.x];
     }
     for (const obj of itemMeshes) {
@@ -371,6 +419,15 @@ export function render() {
         const y = fx.y1 + (fx.y2 - fx.y1) * p;
         const m = new THREE.Mesh(new THREE.SphereGeometry(0.1,8,8), new THREE.MeshBasicMaterial({color: fx.color || 0xffff00, transparent:true, opacity:1-p}));
         m.position.set(x,0.5,y);
+        fxGroup.add(m);
+      } else if (fx.type === 'slash') {
+        const x = fx.x1 + (fx.x2 - fx.x1) * 0.5;
+        const y = fx.y1 + (fx.y2 - fx.y1) * 0.5;
+        const len = Math.hypot(fx.x2 - fx.x1, fx.y2 - fx.y1);
+        const geom = new THREE.BoxGeometry(0.1,0.1,len);
+        const m = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({color: fx.color || 0xff0000, transparent:true, opacity:1-p}));
+        m.position.set(x,0.9,y);
+        m.rotation.y = Math.atan2(fx.x2 - fx.x1, fx.y2 - fx.y1);
         fxGroup.add(m);
       } else if (fx.type === 'fireball') {
         const s = (fx.r / TILE_SIZE) * p;
@@ -435,7 +492,7 @@ function renderMinimap(){
     let col='#eee';
     if(t===T.WALL) col='#000';
     else if(t===T.WATER) col='#55f';
-    else if(t===T.STAIRS) col='#b8c1ff';
+    else if(t===T.STAIRS) col='#654321';
     else if(t===T.FOUNTAIN) col='#4fc3f7';
     mctx.fillStyle=col;
     mctx.fillRect(x*sx,y*sy,sx,sy);
