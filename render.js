@@ -57,52 +57,36 @@ function drawTile(x,y,t){
 }
 
 function createCharacterMesh(color){
-  const mat = new THREE.LineBasicMaterial({color});
+  const mat = new THREE.MeshLambertMaterial({color});
   const group = new THREE.Group();
 
   // body
-  const bodyGeom = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(0,0.6,0),
-    new THREE.Vector3(0,1.6,0)
-  ]);
-  const body = new THREE.Line(bodyGeom, mat);
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.1,1,0.1), mat);
+  body.position.y = 1.1;
   group.add(body);
 
   // legs
-  const legGeom = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(0,0,0),
-    new THREE.Vector3(0,-0.6,0)
-  ]);
-  const legL = new THREE.Line(legGeom, mat);
-  legL.position.set(-0.2,0.6,0);
+  const legGeom = new THREE.BoxGeometry(0.1,0.6,0.1);
+  const legL = new THREE.Mesh(legGeom, mat);
+  legL.position.set(-0.2,0.3,0);
   const legR = legL.clone();
   legR.position.x = 0.2;
   group.add(legL); group.add(legR);
 
   // arms
-  const armGeom = new THREE.BufferGeometry().setFromPoints([
-    new THREE.Vector3(0,0,0),
-    new THREE.Vector3(0.5,0,0)
-  ]);
-  const armL = new THREE.Line(armGeom, mat);
-  armL.position.set(0,1.2,0);
-  armL.rotation.y = Math.PI;
-  const armR = new THREE.Line(armGeom, mat);
-  armR.position.set(0,1.2,0);
+  const armGeom = new THREE.BoxGeometry(0.6,0.1,0.1);
+  const armL = new THREE.Mesh(armGeom, mat);
+  armL.position.set(-0.3,1.2,0);
+  const armR = new THREE.Mesh(armGeom, mat);
+  armR.position.set(0.3,1.2,0);
   group.add(armL); group.add(armR);
 
   // head
-  const headPts=[];
-  const segs=12;
-  for(let i=0;i<segs;i++){
-    const t=2*Math.PI*i/segs;
-    headPts.push(new THREE.Vector3(Math.cos(t)*0.25,1.85+Math.sin(t)*0.25,0));
-  }
-  const headGeom=new THREE.BufferGeometry().setFromPoints(headPts);
-  const head=new THREE.LineLoop(headGeom,mat);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.25,16,16), mat);
+  head.position.y = 1.85;
   group.add(head);
 
-  group.userData={legL,legR,armL,armR};
+  group.userData = {legL, legR, armL, armR};
   return group;
 }
 
@@ -192,11 +176,10 @@ function updateFigure(mesh, tx, ty, now){
   mesh.position.z = mesh.userData.sy + (mesh.userData.ty - mesh.userData.sy)*p;
   const ud = mesh.userData;
   if(ud.legL){
-    const swing = p < 1 ? Math.sin((now - ud.start)/100) * 0.5 : 0;
-    ud.legL.rotation.x = swing;
-    ud.legR.rotation.x = -swing;
-    ud.armL.rotation.x = -swing;
-    ud.armR.rotation.x = swing;
+    ud.legL.rotation.x = 0;
+    ud.legR.rotation.x = 0;
+    ud.armL.rotation.x = 0;
+    ud.armR.rotation.x = 0;
   }
 }
 
@@ -359,12 +342,12 @@ export function render() {
         else ctx.fillRect(cx - 2, cy - 2, 4, 4);
         ctx.globalAlpha = 1;
       } else if (fx.type === 'slash') {
-        const x1 = fx.x1 * TILE_SIZE + TILE_SIZE / 2, y1 = fx.y1 * TILE_SIZE + TILE_SIZE / 2;
-        const x2 = fx.x2 * TILE_SIZE + TILE_SIZE / 2, y2 = fx.y2 * TILE_SIZE + TILE_SIZE / 2;
+        const cx = fx.x2 * TILE_SIZE + TILE_SIZE / 2, cy = fx.y2 * TILE_SIZE + TILE_SIZE / 2;
+        const d = TILE_SIZE / 2;
         ctx.strokeStyle = fx.color || 'red';
         ctx.lineWidth = 3;
         ctx.globalAlpha = 1 - p;
-        ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx - d, cy - d); ctx.lineTo(cx + d, cy + d); ctx.stroke();
         ctx.globalAlpha = 1;
       } else if (fx.type === 'circle') {
         const ex = fx.x * TILE_SIZE + TILE_SIZE / 2, ey = fx.y * TILE_SIZE + TILE_SIZE / 2;
@@ -421,13 +404,13 @@ export function render() {
         m.position.set(x,0.5,y);
         fxGroup.add(m);
       } else if (fx.type === 'slash') {
-        const x = fx.x1 + (fx.x2 - fx.x1) * 0.5;
-        const y = fx.y1 + (fx.y2 - fx.y1) * 0.5;
-        const len = Math.hypot(fx.x2 - fx.x1, fx.y2 - fx.y1);
+        const x = fx.x2;
+        const y = fx.y2;
+        const len = Math.SQRT2;
         const geom = new THREE.BoxGeometry(0.1,0.1,len);
         const m = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({color: fx.color || 0xff0000, transparent:true, opacity:1-p}));
         m.position.set(x,0.9,y);
-        m.rotation.y = Math.atan2(fx.x2 - fx.x1, fx.y2 - fx.y1);
+        m.rotation.y = Math.PI/4;
         fxGroup.add(m);
       } else if (fx.type === 'fireball') {
         const s = (fx.r / TILE_SIZE) * p;
