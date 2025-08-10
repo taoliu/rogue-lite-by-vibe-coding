@@ -504,6 +504,18 @@ export function render() {
           ctx.fill();
         }
         ctx.globalAlpha = 1;
+      } else if (fx.type === 'firework') {
+        const cx = fx.x * TILE_SIZE + TILE_SIZE / 2, cy = fx.y * TILE_SIZE + TILE_SIZE / 2;
+        ctx.globalAlpha = 1 - p;
+        ctx.fillStyle = fx.color || 'rgba(255,200,0,0.8)';
+        for (let i = 0; i < 10; i++) {
+          const ang = (Math.PI * 2 / 10) * i;
+          const dist = fx.r * p;
+          ctx.beginPath();
+          ctx.arc(cx + Math.cos(ang) * dist, cy + Math.sin(ang) * dist, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
       } else if (fx.type === 'levelup') {
         const cx = fx.x * TILE_SIZE + TILE_SIZE / 2, cy = fx.y * TILE_SIZE + TILE_SIZE / 2;
         ctx.strokeStyle = fx.color || 'rgba(0,255,0,0.8)';
@@ -572,6 +584,14 @@ export function render() {
             const dist = (fx.r/TILE_SIZE)*p;
             const m = new THREE.Mesh(new THREE.SphereGeometry(0.1,6,6), new THREE.MeshBasicMaterial({color:0xcccccc, transparent:true, opacity:1-p}));
             m.position.set(fx.x+Math.cos(ang)*dist,0.25,fx.y+Math.sin(ang)*dist);
+            fxGroup.add(m);
+          }
+        } else if (fx.type === 'firework') {
+          for (let i = 0; i < 10; i++) {
+            const ang = (Math.PI * 2 / 10) * i;
+            const dist = (fx.r / TILE_SIZE) * p;
+            const m = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(fx.color || 0xffff00), transparent: true, opacity: 1 - p }));
+            m.position.set(fx.x + Math.cos(ang) * dist, 0.5, fx.y + Math.sin(ang) * dist);
             fxGroup.add(m);
           }
         } else if (fx.type === 'levelup') {

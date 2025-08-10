@@ -551,41 +551,51 @@ function winGame(){
 }
 
 function launchFireworks(){
-  const spawn=()=>{
-    if(!G.win) return;
-    const x=(Math.random()*MAP_W)|0;
-    const y=(Math.random()*MAP_H)|0;
-    const color=`hsl(${(Math.random()*360)|0},100%,70%)`;
-    // celebratory firework removed
-    setTimeout(spawn,500+Math.random()*500);
+  const spawn = () => {
+    if (!G.win) return;
+    const x = (Math.random() * MAP_W) | 0;
+    const y = (Math.random() * MAP_H) | 0;
+    const color = `hsl(${(Math.random() * 360) | 0},100%,70%)`;
+    // trigger a simple expanding firework effect
+    playEffect({ type: 'firework', x, y, r: TILE_SIZE * 2, color }, 800);
+    setTimeout(spawn, 500 + Math.random() * 500);
   };
   spawn();
 }
 
-function showWinScreen(){
-  const modal=document.createElement('div');
-  modal.id='winModal';
-  modal.className='modal';
-  modal.style.background='rgba(0,0,0,0.5)';
-  const card=document.createElement('div');
-  card.className='card';
-  card.innerHTML='<h2>Victory!</h2><p>You recovered the crystal!</p>';
-  const stats=document.createElement('div');
-  stats.innerHTML='<h3>Monster Kills</h3>';
-  const list=document.createElement('div');
-  const entries=Object.entries(G.killCounts);
-  if(entries.length){
-    for(const [name,count] of entries){
-      const row=document.createElement('div');
-      row.textContent=`${name}: ${count}`;
+function showWinScreen() {
+  const modal = document.createElement('div');
+  modal.id = 'winModal';
+  modal.className = 'modal';
+  modal.style.background = 'rgba(0,0,0,0.5)';
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = '<h2>Victory!</h2><p>You recovered the crystal!</p>';
+
+  const run = document.createElement('div');
+  run.innerHTML = `<h3>Run Stats</h3>
+    <div>Turns: ${G.turn}</div>
+    <div>Gold Collected: ${G.gold}</div>
+    <div>Floor Reached: ${G.floor}</div>`;
+
+  const stats = document.createElement('div');
+  stats.innerHTML = '<h3>Monster Kills</h3>';
+  const list = document.createElement('div');
+  const entries = Object.entries(G.killCounts);
+  if (entries.length) {
+    for (const [name, count] of entries) {
+      const row = document.createElement('div');
+      row.textContent = `${name}: ${count}`;
       list.appendChild(row);
     }
   } else {
-    const row=document.createElement('div');
-    row.textContent='None';
+    const row = document.createElement('div');
+    row.textContent = 'None';
     list.appendChild(row);
   }
   stats.appendChild(list);
+
+  card.appendChild(run);
   card.appendChild(stats);
   modal.appendChild(card);
   document.body.appendChild(modal);
