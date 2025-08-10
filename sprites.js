@@ -43,7 +43,7 @@ const cache = {};
 
 for (const [name, color] of Object.entries(SPRITE_INFO)) {
   const tex = loader.load(
-    `resource/${encodeURIComponent(name)}.jpeg`,
+    `resource/${encodeURIComponent(name)}.png`,
     undefined,
     undefined,
     () => {
