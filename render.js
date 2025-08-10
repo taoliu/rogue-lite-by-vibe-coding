@@ -292,7 +292,7 @@ function updateFigure(mesh, tx, ty){
 }
 
 function createPlayerMesh(cls){
-  const colors={warrior:0x880000,mage:0x000088,hunter:0x006600};
+  const colors={warrior:0xaa0000,mage:0x0000aa,hunter:0x008800};
   const group=createCharacterMesh(colors[cls]||0xffff00);
   if(cls==='warrior'){
     const sword=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.05,0.8),new THREE.MeshLambertMaterial({color:0xcccccc}));

@@ -267,11 +267,6 @@ function openShop(m){
   renderInv(); updateUI();
 }
 
-function pickup(){
-  if(G.map[G.player.y][G.player.x]===T.CHEST){ openChest(); return; }
-  log('Nothing to interact.');
-}
-
 function applyEquipStats(it, sign){
   if(it.hp){ G.player.hpMax += sign*it.hp; if(sign>0) G.player.hp += it.hp; }
   if(it.mp){ G.player.mpMax += sign*it.mp; if(sign>0) G.player.mp += it.mp; }
@@ -369,7 +364,18 @@ function move(dx,dy){
   tick();
 }
 
-function wait(){ log('You wait.'); tick(); }
+function wait(){
+  const tile = G.map[G.player.y][G.player.x];
+  if(tile===T.CHEST){
+    openChest();
+    tick();
+  } else if(tile===T.STAIRS){
+    descend();
+  } else {
+    log('You wait.');
+    tick();
+  }
+}
 
 function maybeDrop(mon){
   G.killCounts[mon.name] = (G.killCounts[mon.name] || 0) + 1;
@@ -585,4 +591,4 @@ function showWinScreen(){
   document.body.appendChild(modal);
 }
 
-export { log, move, entityAt, defeat, gainXP, tick, wait, ability, pickup, descend, discardItem, useItem, newPlayer, genMap };
+export { log, move, entityAt, defeat, gainXP, tick, wait, ability, descend, discardItem, useItem, newPlayer, genMap };
