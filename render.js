@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { T, TILE_SIZE, MAP_W, MAP_H } from './data.js';
 import { G, useItem, discardItem } from './game.js';
+import { getSprite } from './sprites.js';
 
 // --- Rendering and UI ---
 // Toggle between classic 2D canvas rendering and experimental 3D using Three.js
-const USE_WEBGL = true;
+const USE_WEBGL = false;
 const canvas = document.getElementById('view');
 const minimap = document.getElementById('minimap');
 const mctx = minimap.getContext('2d');
@@ -94,6 +95,7 @@ if (USE_WEBGL) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.font = '20px sans-serif';
+  ctx.imageSmoothingEnabled = false;
 }
 
 resizeCanvas();
@@ -435,16 +437,16 @@ export function render() {
     // items
     for (const it of G.items) { if (!G.visible[it.y][it.x]) continue; ctx.fillStyle = '#ffd166'; ctx.fillRect(it.x * TILE_SIZE + 10, it.y * TILE_SIZE + 10, 4, 4); }
     // entities (monsters)
-    ctx.fillStyle = '#000';
     for (const e of G.entities) {
       if (!G.visible[e.y][e.x]) continue;
-      const px = e.x * TILE_SIZE + TILE_SIZE / 2, py = e.y * TILE_SIZE + TILE_SIZE / 2;
-      ctx.fillText(e.icon || e.ch || '?', px, py);
+      const px = e.x * TILE_SIZE;
+      const py = e.y * TILE_SIZE;
+      const spr = getSprite(e.sprite || e.type);
+      ctx.drawImage(spr, px, py, TILE_SIZE, TILE_SIZE);
     }
     // player
-    const px = G.player.x * TILE_SIZE + TILE_SIZE / 2, py = G.player.y * TILE_SIZE + TILE_SIZE / 2;
-    ctx.fillStyle = '#000';
-    ctx.fillText(G.player.icon || '@', px, py);
+    const pSpr = getSprite(G.player.sprite || 'warrior');
+    ctx.drawImage(pSpr, G.player.x * TILE_SIZE, G.player.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
 
     // ability effects
     for (const fx of G.effects) {
