@@ -183,7 +183,7 @@ function placeMerchant(){
   let mx=0,my=0,tries=0;
   do{ mx=(rand()*w)|0; my=(rand()*h)|0; tries++; } while(G.map[my][mx]!==T.FLOOR && tries<1000);
   const stock = MERCHANT_ITEMS.map(it=>JSON.parse(JSON.stringify(it)));
-  G.entities.push({type:'merchant', name:'Merchant', icon:'💰', x:mx, y:my, stock});
+  G.entities.push({type:'merchant', name:'Merchant', icon:'💰', sprite:'merchant', x:mx, y:my, stock});
 }
 
 function placeBoss(){
@@ -207,7 +207,8 @@ function newPlayer(cls){
     inv: [],
     weapon: null, armor: null,
     ammo: base.ammo||0, ammoMax: base.ammoMax||0,
-    icon: base.icon || '@'
+    icon: base.icon || '@',
+    sprite: base.sprite || 'warrior'
   }
 }
 
