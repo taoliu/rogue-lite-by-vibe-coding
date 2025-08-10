@@ -108,7 +108,11 @@ function drawTile(x,y,t){
     ctx.fillRect(px,py,TILE_SIZE,TILE_SIZE);
   }
   else if(t===T.FLOOR) rect(px,py,TILE_SIZE,TILE_SIZE,'#dddddd');
-  else if(t===T.STAIRS){ rect(px,py,TILE_SIZE,TILE_SIZE,'#dddddd'); ctx.fillStyle='#654321'; ctx.fillRect(px+8,py+8,8,8); }
+  else if(t===T.STAIRS){
+    rect(px,py,TILE_SIZE,TILE_SIZE,'#654321');
+    ctx.fillStyle='#333333';
+    ctx.fillRect(px+4,py+4,16,16);
+  }
   else if(t===T.CHEST){ rect(px,py,TILE_SIZE,TILE_SIZE,'#dddddd'); ctx.fillStyle='#8b5e34'; ctx.fillRect(px+5,py+6,14,12); ctx.fillStyle='#d4af37'; ctx.fillRect(px+5,py+12,14,2); }
   else if(t===T.WATER){ rect(px,py,TILE_SIZE,TILE_SIZE,'#cceeff'); }
   else if(t===T.FOUNTAIN){ rect(px,py,TILE_SIZE,TILE_SIZE,'#dddddd'); ctx.fillStyle='#4fc3f7'; ctx.beginPath(); ctx.arc(px+TILE_SIZE/2, py+TILE_SIZE/2, 6, 0, Math.PI*2); ctx.fill(); }
@@ -313,6 +317,11 @@ function createPlayerMesh(cls){
     bow.rotation.y=Math.PI/2; bow.position.set(0.55,1.0,0); group.add(bow);
     const quiver=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,0.8,8),new THREE.MeshLambertMaterial({color:0x552200}));
     quiver.position.set(-0.6,1.2,0.1); group.add(quiver);
+    const earGeom=new THREE.ConeGeometry(0.15,0.3,8);
+    const earMat=new THREE.MeshLambertMaterial({color:0x008800});
+    const earL=new THREE.Mesh(earGeom,earMat); earL.rotation.z=Math.PI/2; earL.position.set(-0.35,1.7,0);
+    const earR=new THREE.Mesh(earGeom,earMat); earR.rotation.z=-Math.PI/2; earR.position.set(0.35,1.7,0);
+    group.add(earL,earR);
   }
   enableShadows(group);
   return group;
@@ -360,12 +369,14 @@ function buildScene3D(){
     let h = 0.1;
     if (t === T.WALL){ h = 0.7; mat = wallMaterial; }
     else if (t === T.WATER){ mat = new THREE.MeshLambertMaterial({color:0x113355}); h = 0.05; }
-    else if (t === T.STAIRS){ h = 0.02; }
-    const base = new THREE.Mesh(new THREE.BoxGeometry(1,h,1), mat);
-    base.position.y = h/2;
-    base.receiveShadow = true;
-    base.castShadow = (t === T.WALL);
-    group.add(base);
+    else if (t === T.STAIRS){ h = 0; }
+    if (h > 0) {
+      const base = new THREE.Mesh(new THREE.BoxGeometry(1,h,1), mat);
+      base.position.y = h/2;
+      base.receiveShadow = true;
+      base.castShadow = (t === T.WALL);
+      group.add(base);
+    }
     if (t === T.STAIRS) {
       group.add(createStairsMesh());
     } else if (t === T.FOUNTAIN) {
