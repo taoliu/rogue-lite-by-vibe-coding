@@ -1,5 +1,5 @@
 import { rngFromSeed } from './utils.js';
-import { G, move, entityAt, defeat, tick, wait, ability, pickup, descend, discardItem, useItem, newPlayer, genMap, log } from './game.js';
+import { G, move, entityAt, defeat, tick, wait, ability, discardItem, useItem, newPlayer, genMap, log } from './game.js';
 import { updateUI, render } from './render.js';
 
 // --- Input & Bootstrap ---
@@ -21,8 +21,6 @@ function onKey(e){
   }
   else if(k==='.' || k==='5') wait();
   else if(k===' '){ e.preventDefault(); ability(); }
-  else if(k==='g'){ pickup(); }
-  else if(k==='>'){ descend(); }
   else if(/^Digit[1-9]$/.test(e.code) || /^Numpad[1-9]$/.test(e.code)){
     const num = parseInt(e.code.slice(-1));
     if(e.shiftKey) discardItem(num-1);
@@ -48,7 +46,7 @@ document.getElementById('btnRestart').addEventListener('click', ()=>{
   window.removeEventListener('keydown', onKey);
 });
 document.getElementById('btnHelp').addEventListener('click', ()=>{
-  alert('Move: WASD/Arrows | Wait: . | Attack: F | Ability: Space | Open chest: G | Down stairs: >\nInventory: click item or press 1..9 to use, Shift+1..9 to drop');
+  alert('Move: WASD/Arrows | Wait: . | Attack: F | Ability: Space | Open chest/Descend: wait on chest/stairs\nInventory: click item or press 1..9 to use, Shift+1..9 to drop');
 });
 for(const b of document.querySelectorAll('.classbtn')){
   b.addEventListener('click', ()=> startRun(b.dataset.class));
@@ -64,7 +62,6 @@ for(const btn of document.querySelectorAll('#dpad button')){
     else { move(dx,dy); G.lastDir=[dx,dy]; }
   });
 }
-document.getElementById('btnMobilePickup')?.addEventListener('pointerdown', e=>{ e.preventDefault(); pickup(); });
 document.getElementById('btnMobileAbility')?.addEventListener('pointerdown', e=>{ e.preventDefault(); ability(); });
 
 // Start paused at class select
