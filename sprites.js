@@ -31,7 +31,6 @@ const SPRITE_INFO = {
   'Skeleton Archer': '#ffffff',
   Orc: '#225500',
   Zombie: '#99cc00',
-  Mimic: '#8b5e34',
   Ogre: '#553300',
   'Young Dragon': '#ff0000',
   'Crystal Guardian': '#00ffff',
