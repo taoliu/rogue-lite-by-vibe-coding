@@ -130,113 +130,18 @@ function enableShadows(obj){
   });
 }
 
-function createCharacterMesh(color){
-  const mat = new THREE.MeshStandardMaterial({color});
-  const group = new THREE.Group();
-
-  // torso (smaller body)
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.9,0.25), mat);
-  torso.position.y = 0.75;
-  group.add(torso);
-
-  // head (larger)
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.5,16,16), mat);
-  head.position.y = 1.7;
-  group.add(head);
-
-  // eyes
-  const eyeGeom = new THREE.SphereGeometry(0.07,8,8);
-  const eyeMat = new THREE.MeshStandardMaterial({color:0x000000});
-  const eyeL = new THREE.Mesh(eyeGeom, eyeMat);
-  eyeL.position.set(-0.15,1.7,0.28);
-  const eyeR = eyeL.clone();
-  eyeR.position.x = 0.15;
-  group.add(eyeL, eyeR);
-
-  // belt detail
-  const belt = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.1,0.27), new THREE.MeshStandardMaterial({color:0x333333}));
-  belt.position.y = 0.55;
-  group.add(belt);
-
-  // arms
-  const armGeom = new THREE.CylinderGeometry(0.12,0.12,0.8,8);
-  const armL = new THREE.Mesh(armGeom, mat);
-  armL.position.set(-0.4,1.0,0);
-  const armR = armL.clone();
-  armR.position.x = 0.4;
-  group.add(armL); group.add(armR);
-
-  // legs
-  const legGeom = new THREE.CylinderGeometry(0.15,0.15,0.9,8);
-  const legL = new THREE.Mesh(legGeom, mat);
-  legL.position.set(-0.18,0.45,0);
-  const legR = legL.clone();
-  legR.position.x = 0.18;
-  group.add(legL); group.add(legR);
-
-  group.userData = {legL, legR, armL, armR};
-  enableShadows(group);
-  return group;
-}
-
-function createGoblinMesh(){
-  const g=createCharacterMesh(0x00aa00);
-  const earGeom=new THREE.ConeGeometry(0.15,0.3,8);
-  const earMat=new THREE.MeshLambertMaterial({color:0x00aa00});
-  const earL=new THREE.Mesh(earGeom,earMat); earL.rotation.z=Math.PI/2; earL.position.set(-0.35,1.7,0);
-  const earR=earL.clone(); earR.position.x=0.35; earR.rotation.z=-Math.PI/2; g.add(earL,earR);
-  const dagger=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.05,0.6),new THREE.MeshLambertMaterial({color:0x888888}));
-  dagger.position.set(0.55,1,0); dagger.rotation.x=Math.PI/2; g.add(dagger);
-  return g;
-}
-
-function createOrcMesh(){
-  const g=createCharacterMesh(0x225500); g.scale.set(1.1,1.1,1.1);
-  const tuskGeom=new THREE.CylinderGeometry(0.03,0.05,0.3,8);
-  const tuskMat=new THREE.MeshLambertMaterial({color:0xffffff});
-  const tuskL=new THREE.Mesh(tuskGeom,tuskMat); tuskL.position.set(-0.15,1.5,0.15); tuskL.rotation.z=Math.PI/2;
-  const tuskR=tuskL.clone(); tuskR.position.x=0.15; g.add(tuskL,tuskR);
-  const handle=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.8,8),new THREE.MeshLambertMaterial({color:0x8b4513}));
-  handle.position.set(0.55,1,0); handle.rotation.x=Math.PI/2;
-  const blade=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.3,0.05),new THREE.MeshLambertMaterial({color:0xaaaaaa}));
-  blade.position.set(0.55,1.2,0.3);
-  g.add(handle,blade);
-  return g;
-}
-
-function createZombieMesh(){
-  const g=createCharacterMesh(0x99cc00);
-  g.userData.armL.rotation.x=Math.PI/2; g.userData.armR.rotation.x=Math.PI/2;
-  return g;
-}
-
-function createOgreMesh(){
-  const g=createCharacterMesh(0x553300); g.scale.set(1.3,1.3,1.3);
-  const club=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.15,1,8),new THREE.MeshLambertMaterial({color:0x8b4513}));
-  club.position.set(0.6,1.1,0); club.rotation.x=Math.PI/2; g.add(club);
-  return g;
-}
-
-function createDragonMesh(){
-  const group=new THREE.Group();
-  const mat=new THREE.MeshLambertMaterial({color:0xff0000});
-  const body=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.3,1.6,8),mat);
-  body.rotation.z=Math.PI/2; body.position.y=0.6; group.add(body);
-  const head=new THREE.Mesh(new THREE.SphereGeometry(0.3,16,16),mat); head.position.set(0.8,0.8,0); group.add(head);
-  const wingGeom=new THREE.PlaneGeometry(1.2,0.6); const wingMat=new THREE.MeshLambertMaterial({color:0xaa0000, side:THREE.DoubleSide});
-  const left=new THREE.Mesh(wingGeom,wingMat); left.position.set(0,1.0,0.5); left.rotation.x=Math.PI/2;
-  const right=left.clone(); right.position.z=-0.5; group.add(left,right);
-  return group;
-}
-
-function createCrystalGuardianMesh(){
-  return new THREE.Mesh(new THREE.OctahedronGeometry(0.6), new THREE.MeshLambertMaterial({color:0x00ffff, transparent:true, opacity:0.8}));
-}
-
-function createMerchantMesh(){
-  const g=createCharacterMesh(0x996633);
-  const bag=new THREE.Mesh(new THREE.SphereGeometry(0.3,8,8),new THREE.MeshLambertMaterial({color:0x8b4513}));
-  bag.position.set(-0.4,0.9,0); g.add(bag); return g;
+function createSpriteMesh(name){
+  const canvas = getSprite(name);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.magFilter = THREE.NearestFilter;
+  texture.minFilter = THREE.NearestFilter;
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+  const sprite = new THREE.Sprite(material);
+  sprite.center.set(0.5, 0);
+  sprite.scale.set(1, 1, 1);
+  sprite.castShadow = true;
+  sprite.receiveShadow = true;
+  return sprite;
 }
 
 function createStairsMesh(){
@@ -288,66 +193,6 @@ function createItemMesh(){
 function updateFigure(mesh, tx, ty){
   mesh.position.x = tx;
   mesh.position.z = ty;
-  const ud = mesh.userData;
-  if(ud.legL){
-    ud.legL.rotation.x = 0;
-    ud.legR.rotation.x = 0;
-    ud.armL.rotation.x = 0;
-    ud.armR.rotation.x = 0;
-  }
-}
-
-function createPlayerMesh(cls){
-  const colors={warrior:0xaa0000,mage:0x0000aa,hunter:0x008800};
-  const group=createCharacterMesh(colors[cls]||0xffff00);
-  if(cls==='warrior'){
-    const sword=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.05,0.8),new THREE.MeshLambertMaterial({color:0xcccccc}));
-    sword.position.set(0.55,1.0,0); sword.rotation.x=Math.PI/2; group.add(sword);
-    const shield=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.4,0.1,16),new THREE.MeshLambertMaterial({color:0x555555}));
-    shield.position.set(-0.6,1.0,0); shield.rotation.z=Math.PI/2; group.add(shield);
-    const helm=new THREE.Mesh(new THREE.SphereGeometry(0.5,16,16,0,Math.PI*2,0,Math.PI/2),new THREE.MeshLambertMaterial({color:0x555555}));
-    helm.position.y=1.7; group.add(helm);
-  } else if(cls==='mage'){
-    const hat=new THREE.Mesh(new THREE.ConeGeometry(0.4,0.6,8),new THREE.MeshLambertMaterial({color:0x0000ff}));
-    hat.position.y=2.0; group.add(hat);
-    const staff=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,1.2,8),new THREE.MeshLambertMaterial({color:0x8b4513}));
-    staff.position.set(0.55,1.1,0); staff.rotation.x=Math.PI/2;
-    const orb=new THREE.Mesh(new THREE.SphereGeometry(0.1,8,8),new THREE.MeshLambertMaterial({color:0x00ffff}));
-    orb.position.y=0.6; staff.add(orb); group.add(staff);
-  } else if(cls==='hunter'){
-    const bow=new THREE.Mesh(new THREE.TorusGeometry(0.4,0.03,8,16,Math.PI),new THREE.MeshLambertMaterial({color:0x996633}));
-    bow.rotation.y=Math.PI/2; bow.position.set(0.55,1.0,0); group.add(bow);
-    const quiver=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,0.8,8),new THREE.MeshLambertMaterial({color:0x552200}));
-    quiver.position.set(-0.6,1.2,0.1); group.add(quiver);
-    const earGeom=new THREE.ConeGeometry(0.15,0.3,8);
-    const earMat=new THREE.MeshLambertMaterial({color:0x008800});
-    const earL=new THREE.Mesh(earGeom,earMat); earL.rotation.z=Math.PI/2; earL.position.set(-0.35,1.7,0);
-    const earR=new THREE.Mesh(earGeom,earMat); earR.rotation.z=-Math.PI/2; earR.position.set(0.35,1.7,0);
-    group.add(earL,earR);
-  }
-  enableShadows(group);
-  return group;
-}
-
-function createMonsterMesh(monster){
-  const name=monster.name;
-  let m;
-  if(name==='Goblin') m = createGoblinMesh();
-  else if(name==='Skeleton Archer'){
-    m = createCharacterMesh(0xffffff);
-    const bow=new THREE.Mesh(new THREE.TorusGeometry(0.3,0.02,8,16,Math.PI),new THREE.MeshLambertMaterial({color:0x996633}));
-    bow.rotation.y=Math.PI/2; bow.position.set(0.55,1.0,0); m.add(bow);
-  }
-  else if(name==='Orc') m = createOrcMesh();
-  else if(name==='Zombie') m = createZombieMesh();
-  else if(name==='Mimic') m = createChestMesh();
-  else if(name==='Ogre') m = createOgreMesh();
-  else if(name==='Young Dragon') m = createDragonMesh();
-  else if(name==='Crystal Guardian') m = createCrystalGuardianMesh();
-  else if(monster.type==='merchant') m = createMerchantMesh();
-  else m = createCharacterMesh(0xff0000);
-  enableShadows(m);
-  return m;
 }
 
 function buildScene3D(){
@@ -393,7 +238,7 @@ function buildScene3D(){
       chestMeshes.push({ mesh: chest, x, y });
     }
   }
-  playerMesh = createPlayerMesh(G.player.cls);
+  playerMesh = createSpriteMesh(G.player.sprite || G.player.cls);
   scene.add(playerMesh);
   playerMesh.position.set(G.player.x,0,G.player.y);
   playerMesh.userData.tx = playerMesh.userData.sx = G.player.x;
@@ -401,7 +246,7 @@ function buildScene3D(){
   playerMesh.userData.start = performance.now();
   entityMeshes = [];
   for (const e of G.entities) {
-    const mesh = createMonsterMesh(e);
+    const mesh = createSpriteMesh(e.sprite || e.type);
     mesh.position.set(e.x, 0, e.y);
     mesh.userData.tx = mesh.userData.sx = e.x;
     mesh.userData.ty = mesh.userData.sy = e.y;
