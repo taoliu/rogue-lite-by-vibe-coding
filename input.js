@@ -1,5 +1,5 @@
 import { rngFromSeed } from './utils.js';
-import { G, move, entityAt, gainXP, maybeDrop, tick, wait, ability, pickup, descend, discardItem, useItem, newPlayer, genMap, log } from './game.js';
+import { G, move, entityAt, defeat, tick, wait, ability, pickup, descend, discardItem, useItem, newPlayer, genMap, log } from './game.js';
 import { updateUI, render } from './render.js';
 
 // --- Input & Bootstrap ---
@@ -16,7 +16,7 @@ function onKey(e){
     if(m){
       const dmg=Math.max(1, G.player.atk-(m.def||0));
       m.hp-=dmg; log(`You strike the ${m.name} for ${dmg}.`);
-      if(m.hp<=0){ gainXP(m.xp); maybeDrop(m); G.entities=G.entities.filter(e=>e!==m);} tick();
+      if(m.hp<=0){ defeat(m); } tick();
     } else log('No enemy to strike.');
   }
   else if(k==='.' || k==='5') wait();
