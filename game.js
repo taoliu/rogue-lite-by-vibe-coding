@@ -167,9 +167,8 @@ function genMap() {
     placed++;
   }
 
-  // scatter ground items
+  // reset ground items (no random loot now)
   G.items=[];
-  for(let i=0;i<6;i++) placeGroundItem();
 
   if(G.floor===4) placeMerchant();
   if(G.floor===5) placeBoss();
@@ -177,16 +176,6 @@ function genMap() {
   // position player at maze start
   G.player.x=1; G.player.y=1;
   fov();
-}
-
-function placeGroundItem(){
-  const {rand}=G.rng, w=MAP_W, h=MAP_H;
-  let ix=0, iy=0, tries=0;
-  do{ ix=(rand()*w)|0; iy=(rand()*h)|0; tries++; } while(G.map[iy][ix]!==T.FLOOR && tries<1000);
-  const isRare = Math.random()<0.25;
-  const pool = isRare? LOOT.rare : LOOT.common;
-  const item = JSON.parse(JSON.stringify(pool[(Math.random()*pool.length)|0]));
-  G.items.push({x:ix, y:iy, item});
 }
 
 function placeMerchant(){
@@ -235,6 +224,7 @@ function gainXP(x){
       G.player.atk += 1;
     }
     G.player.hp = G.player.hpMax;
+    playEffect({type:'levelup', x:G.player.x, y:G.player.y, r:TILE_SIZE});
     log(`== Level up! You are now level ${G.player.lvl}.`);
   }
 }
@@ -251,8 +241,7 @@ function openChest(){
   if(!canUse(item)){
     log(`You open the chest and find ${item.name} and ${gold} gold, but discard the item.`);
   } else if(G.player.inv.length >= 9){
-    log(`You open the chest and find ${item.name} and ${gold} gold, but your inventory is full!`);
-    G.items.push({x:G.player.x, y:G.player.y, item});
+    log(`You open the chest and find ${item.name} and ${gold} gold, but your inventory is full so it crumbles to dust.`);
   } else {
     G.player.inv.push(item);
     log(`You open the chest and find ${item.name} and ${gold} gold!`);
@@ -311,10 +300,8 @@ async function useItem(i){
 function discardItem(i){
   const it = G.player.inv[i]; if(!it) return;
   G.player.inv.splice(i,1);
-  G.items.push({x:G.player.x, y:G.player.y, item:it});
-  log(`Dropped ${it.name}.`);
+  log(`Discarded ${it.name}.`);
   updateUI();
-  render();
 }
 
 // --- Field of View (simple LOS radius) ---
@@ -358,9 +345,7 @@ function move(dx,dy){
     m.hp -= dmg; log(`You hit the ${m.name} for ${dmg}.`);
     if(m.hp<=0){
       log(`The ${m.name} dies.`);
-      gainXP(m.xp);
-      maybeDrop(m);
-      G.entities = G.entities.filter(e=>e!==m);
+      defeat(m);
     }
     tick();
     return;
@@ -381,22 +366,6 @@ function move(dx,dy){
   if(G.player.cls==='mage'){
     G.player.mp = Math.min(G.player.mpMax, G.player.mp + 1);
   }
-  const here = G.items.findIndex(it=>it.x===G.player.x && it.y===G.player.y);
-  if(here!==-1){
-    const obj = G.items[here].item;
-    if(!canUse(obj)){
-      G.items.splice(here,1);
-      log(`Discarded ${obj.name}.`);
-      resetScene();
-    } else if(G.player.inv.length < 9){
-      G.items.splice(here,1);
-      G.player.inv.push(obj);
-      log(`Picked up ${obj.name}.`);
-      resetScene();
-    } else {
-      log('Inventory full.');
-    }
-  }
   tick();
 }
 
@@ -410,24 +379,24 @@ function maybeDrop(mon){
     return;
   }
   if(Math.random()<0.7){ const g = (Math.random()*8+2)|0; G.gold+=g; log(`You loot ${g} gold.`); }
-  const drops=[];
-  if(Math.random()<0.35) drops.push(JSON.parse(JSON.stringify(LOOT.common[(Math.random()*LOOT.common.length)|0])));
-  if(Math.random()<0.12) drops.push(JSON.parse(JSON.stringify(LOOT.rare[(Math.random()*LOOT.rare.length)|0])));
-  const before = G.items.length;
-  for(const item of drops){
-    if(!canUse(item)){
-      log(`Discarded ${item.name}.`);
-      continue;
-    }
-    if(G.player.inv.length < 9){
+  if(G.player.inv.length < 9 && Math.random()<0.3){
+    const pool = Math.random()<0.2 ? LOOT.rare : LOOT.common;
+    const item = JSON.parse(JSON.stringify(pool[(Math.random()*pool.length)|0]));
+    if(canUse(item)){
       G.player.inv.push(item);
       log(`You acquire ${item.name}.`);
     } else {
-      G.items.push({x:mon.x, y:mon.y, item});
+      log(`Discarded ${item.name}.`);
     }
   }
-  if(G.items.length>before) resetScene();
   updateUI();
+}
+
+function defeat(mon){
+  playEffect({type:'dust', x:mon.x, y:mon.y, r:TILE_SIZE/2});
+  gainXP(mon.xp);
+  maybeDrop(mon);
+  G.entities = G.entities.filter(e=>e!==mon);
 }
 
 // Ability handlers
@@ -442,7 +411,7 @@ async function ability(){
       if(m){
         const dmg = Math.max(1, G.player.atk+1-(m.def||0));
         m.hp-=dmg; log(`Whirlwind hits ${m.name} for ${dmg}.`);
-        if(m.hp<=0){ gainXP(m.xp); maybeDrop(m); G.entities=G.entities.filter(e=>e!==m);} }
+        if(m.hp<=0){ defeat(m); } }
     }
     G.player.abilityCd = G.player.abilityMaxCd;
     await tick();
@@ -468,7 +437,7 @@ async function ability(){
     await playEffect({type:'arrow', x1:G.player.x, y1:G.player.y, x2:target.x, y2:target.y, color:'rgba(255,255,255,0.6)'});
     const dmg = G.player.atk+2;
     target.hp-=dmg; log(`Arrow hits ${target.name} for ${dmg}.`);
-    if(target.hp<=0){ gainXP(target.xp); maybeDrop(target); G.entities=G.entities.filter(e=>e!==target); }
+    if(target.hp<=0){ defeat(target); }
     await tick();
   }
 }
@@ -477,7 +446,7 @@ function aoe(cx,cy,r,dmg){
   for(const e of [...G.entities]){
     if(Math.hypot(e.x-cx,e.y-cy)<=r){
       e.hp-=dmg; log(`${e.name} takes ${dmg} damage.`);
-      if(e.hp<=0){ gainXP(e.xp); maybeDrop(e); G.entities=G.entities.filter(x=>x!==e); }
+      if(e.hp<=0){ defeat(e); }
     }
   }
 }
@@ -498,7 +467,7 @@ async function shootLine(dmg, range){
   await playEffect({type:'arrow', x1:G.player.x, y1:G.player.y, x2:endX, y2:endY, color:'rgba(255,255,255,0.6)'});
   if(target){
     target.hp-=dmg; log(`Arrow hits ${target.name} for ${dmg}.`);
-    if(target.hp<=0){ gainXP(target.xp); maybeDrop(target); G.entities=G.entities.filter(e=>e!==target); }
+    if(target.hp<=0){ defeat(target); }
   }
 }
 
@@ -616,4 +585,4 @@ function showWinScreen(){
   document.body.appendChild(modal);
 }
 
-export { log, move, entityAt, gainXP, maybeDrop, tick, wait, ability, pickup, descend, discardItem, useItem, newPlayer, genMap };
+export { log, move, entityAt, defeat, gainXP, tick, wait, ability, pickup, descend, discardItem, useItem, newPlayer, genMap };

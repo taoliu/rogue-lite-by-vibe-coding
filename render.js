@@ -441,20 +441,26 @@ export function render() {
       if (fx.type === 'whirlwind') {
         const cx = fx.x * TILE_SIZE + TILE_SIZE / 2, cy = fx.y * TILE_SIZE + TILE_SIZE / 2;
         ctx.strokeStyle = fx.color || 'rgba(255,255,0,0.8)';
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 2;
         ctx.globalAlpha = 1 - p;
-        for(let i=0;i<4;i++){
-          const ang = p * Math.PI * 2 + (Math.PI/2)*i;
-          ctx.beginPath(); ctx.moveTo(cx, cy);
-          ctx.lineTo(cx + Math.cos(ang) * fx.r, cy + Math.sin(ang) * fx.r);
+        const arms = 6;
+        for(let i=0;i<arms;i++){
+          const ang = p * Math.PI * 2 + (Math.PI*2/arms)*i;
+          ctx.beginPath();
+          ctx.arc(cx, cy, fx.r*(i/arms), ang, ang + Math.PI/3);
           ctx.stroke();
         }
         ctx.globalAlpha = 1;
       } else if (fx.type === 'fireball') {
         const ex = fx.x * TILE_SIZE + TILE_SIZE / 2, ey = fx.y * TILE_SIZE + TILE_SIZE / 2;
-        ctx.strokeStyle = fx.color || 'rgba(255,80,0,0.5)'; ctx.lineWidth = 2;
+        const r = fx.r * p;
+        const grd = ctx.createRadialGradient(ex, ey, 0, ex, ey, r);
+        grd.addColorStop(0, fx.color || 'rgba(255,120,0,0.9)');
+        grd.addColorStop(1, 'rgba(255,255,0,0)');
         ctx.globalAlpha = 1 - p;
-        ctx.beginPath(); ctx.arc(ex, ey, fx.r * p, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = grd;
+        ctx.beginPath(); ctx.arc(ex, ey, r, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#ff0'; ctx.lineWidth = 2; ctx.stroke();
         ctx.globalAlpha = 1;
       } else if (fx.type === 'arrow') {
         const x1 = fx.x1 * TILE_SIZE + TILE_SIZE / 2, y1 = fx.y1 * TILE_SIZE + TILE_SIZE / 2;
@@ -474,6 +480,25 @@ export function render() {
         ctx.lineWidth = 3;
         ctx.globalAlpha = 1 - p;
         ctx.beginPath(); ctx.moveTo(cx - d, cy - d); ctx.lineTo(cx + d, cy + d); ctx.stroke();
+        ctx.globalAlpha = 1;
+      } else if (fx.type === 'dust') {
+        const cx = fx.x * TILE_SIZE + TILE_SIZE / 2, cy = fx.y * TILE_SIZE + TILE_SIZE / 2;
+        ctx.fillStyle = fx.color || 'rgba(200,200,200,0.8)';
+        ctx.globalAlpha = 1 - p;
+        for(let i=0;i<8;i++){
+          const ang = (Math.PI*2/8)*i;
+          const dist = fx.r * p;
+          ctx.beginPath();
+          ctx.arc(cx + Math.cos(ang)*dist, cy + Math.sin(ang)*dist, 2, 0, Math.PI*2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      } else if (fx.type === 'levelup') {
+        const cx = fx.x * TILE_SIZE + TILE_SIZE / 2, cy = fx.y * TILE_SIZE + TILE_SIZE / 2;
+        ctx.strokeStyle = fx.color || 'rgba(0,255,0,0.8)';
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 1 - p;
+        ctx.beginPath(); ctx.arc(cx, cy, fx.r * p, 0, Math.PI * 2); ctx.stroke();
         ctx.globalAlpha = 1;
       }
     }
@@ -498,35 +523,53 @@ export function render() {
     fxGroup.clear();
     for (const fx of G.effects) {
       const p = fx.duration ? fx.elapsed / fx.duration : 0;
-      if (fx.type === 'arrow') {
-        const x = fx.x1 + (fx.x2 - fx.x1) * p;
-        const y = fx.y1 + (fx.y2 - fx.y1) * p;
-        const m = new THREE.Mesh(new THREE.SphereGeometry(0.1,8,8), new THREE.MeshBasicMaterial({color: fx.color || 0xffff00, transparent:true, opacity:1-p}));
-        m.position.set(x,0.5,y);
-        fxGroup.add(m);
-      } else if (fx.type === 'slash') {
-        const x = fx.x2;
-        const y = fx.y2;
-        const len = Math.SQRT2;
-        const geom = new THREE.BoxGeometry(0.1,0.1,len);
-        const m = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({color: fx.color || 0xff0000, transparent:true, opacity:1-p}));
-        m.position.set(x,0.9,y);
-        m.rotation.y = Math.PI/4;
-        fxGroup.add(m);
-      } else if (fx.type === 'fireball') {
-        const s = (fx.r / TILE_SIZE) * p;
-        const m = new THREE.Mesh(new THREE.SphereGeometry(s,8,8), new THREE.MeshBasicMaterial({color: fx.color || 0xff5000, transparent:true, opacity:1-p}));
-        m.position.set(fx.x,0.5,fx.y);
-        fxGroup.add(m);
-      } else if (fx.type === 'whirlwind') {
-        const blades = 8;
-        for(let i=0;i<blades;i++){
-          const ang = p * Math.PI * 2 + (Math.PI*2/blades)*i;
-          const m = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.5,6), new THREE.MeshBasicMaterial({color: fx.color || 0xffff00, transparent:true, opacity:1-p}));
-          m.position.set(fx.x + Math.cos(ang)*(fx.r/TILE_SIZE),0.25, fx.y + Math.sin(ang)*(fx.r/TILE_SIZE));
+        if (fx.type === 'arrow') {
+          const x = fx.x1 + (fx.x2 - fx.x1) * p;
+          const y = fx.y1 + (fx.y2 - fx.y1) * p;
+          const m = new THREE.Mesh(new THREE.SphereGeometry(0.1,8,8), new THREE.MeshBasicMaterial({color: fx.color || 0xffff00, transparent:true, opacity:1-p}));
+          m.position.set(x,0.5,y);
+          fxGroup.add(m);
+        } else if (fx.type === 'slash') {
+          const x = fx.x2;
+          const y = fx.y2;
+          const len = Math.SQRT2;
+          const geom = new THREE.BoxGeometry(0.1,0.1,len);
+          const m = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({color: fx.color || 0xff0000, transparent:true, opacity:1-p}));
+          m.position.set(x,0.9,y);
+          m.rotation.y = Math.PI/4;
+          fxGroup.add(m);
+        } else if (fx.type === 'fireball') {
+          const s = (fx.r / TILE_SIZE) * p;
+          const outer = new THREE.Mesh(new THREE.SphereGeometry(s,8,8), new THREE.MeshBasicMaterial({color: fx.color || 0xff5000, transparent:true, opacity:0.5*(1-p)}));
+          outer.position.set(fx.x,0.5,fx.y);
+          fxGroup.add(outer);
+          const core = new THREE.Mesh(new THREE.SphereGeometry(s*0.5,8,8), new THREE.MeshBasicMaterial({color: 0xffff00, transparent:true, opacity:1-p}));
+          core.position.set(fx.x,0.5,fx.y);
+          fxGroup.add(core);
+        } else if (fx.type === 'whirlwind') {
+          const blades = 12;
+          for(let i=0;i<blades;i++){
+            const ang = p * Math.PI * 2 + (Math.PI*2/blades)*i;
+            const m = new THREE.Mesh(new THREE.ConeGeometry(0.1,0.5,8), new THREE.MeshBasicMaterial({color: fx.color || 0xffff00, transparent:true, opacity:1-p}));
+            m.position.set(fx.x + Math.cos(ang)*(fx.r/TILE_SIZE),0.25, fx.y + Math.sin(ang)*(fx.r/TILE_SIZE));
+            m.rotation.z = ang;
+            fxGroup.add(m);
+          }
+        } else if (fx.type === 'dust') {
+          for(let i=0;i<8;i++){
+            const ang = (Math.PI*2/8)*i;
+            const dist = (fx.r/TILE_SIZE)*p;
+            const m = new THREE.Mesh(new THREE.SphereGeometry(0.1,6,6), new THREE.MeshBasicMaterial({color:0xcccccc, transparent:true, opacity:1-p}));
+            m.position.set(fx.x+Math.cos(ang)*dist,0.25,fx.y+Math.sin(ang)*dist);
+            fxGroup.add(m);
+          }
+        } else if (fx.type === 'levelup') {
+          const s = (fx.r / TILE_SIZE) * p;
+          const m = new THREE.Mesh(new THREE.RingGeometry(s*0.5, s, 16), new THREE.MeshBasicMaterial({color:0x00ff00, transparent:true, opacity:1-p, side:THREE.DoubleSide}));
+          m.rotation.x = Math.PI/2;
+          m.position.set(fx.x,0.5,fx.y);
           fxGroup.add(m);
         }
-      }
     }
     renderer3d.render(scene, camera);
   }
