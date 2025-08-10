@@ -311,6 +311,11 @@ function createPlayerMesh(cls){
 }
 
 function createMonsterMesh(monster){
+  if (monster.name === 'Mimic') {
+    const chest = createChestMesh();
+    enableShadows(chest);
+    return chest;
+  }
   const key = monster.type === 'merchant' ? 'merchant' : monster.name;
   return createSpriteMesh(key);
 }
@@ -337,9 +342,10 @@ function buildScene3D(){
     if (t === T.WALL){ h = 0.7; mat = wallMaterial; }
     else if (t === T.WATER){ mat = new THREE.MeshLambertMaterial({color:0x113355}); h = 0.05; }
     else if (t === T.STAIRS){ h = 0; }
+    const yOff = t === T.WALL ? h/2 : -h/2 - 0.01;
     if (h > 0) {
       const base = new THREE.Mesh(new THREE.BoxGeometry(1,h,1), mat);
-      base.position.y = h/2;
+      base.position.y = yOff;
       base.receiveShadow = true;
       base.castShadow = (t === T.WALL);
       group.add(base);
