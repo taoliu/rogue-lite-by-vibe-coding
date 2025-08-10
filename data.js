@@ -13,13 +13,13 @@ export const MAP_W = 40, MAP_H = 30; // 40x30 -> 960x720 canvas
 
 // Monsters (D&D-ish)
 export const MONSTERS = [
-  {name:'Goblin', icon:'👺', hp:6, atk:2, mp:0, speed:2, attack:'melee', xp:4},
-  {name:'Skeleton Archer', icon:'🏹', hp:8, atk:3, mp:0, speed:1, attack:'ranged', range:4, xp:6},
-  {name:'Orc', icon:'👹', hp:12, atk:4, mp:2, speed:1, attack:'melee', xp:10},
-  {name:'Zombie', icon:'🧟', hp:14, atk:3, mp:0, speed:0.5, attack:'melee', xp:10},
-  {name:'Mimic', icon:'📦', hp:10, atk:5, mp:0, speed:1, attack:'melee', xp:12},
-  {name:'Ogre', icon:'🧌', hp:18, atk:6, mp:0, speed:1, attack:'melee', xp:18},
-  {name:'Young Dragon', icon:'🐉', hp:28, atk:8, mp:10, speed:3, attack:'magic', range:5, cost:3, xp:30}
+  {name:'Goblin', icon:'👺', sprite:'goblin', hp:6, atk:2, mp:0, speed:2, attack:'melee', xp:4},
+  {name:'Skeleton Archer', icon:'🏹', sprite:'skeleton', hp:8, atk:3, mp:0, speed:1, attack:'ranged', range:4, xp:6},
+  {name:'Orc', icon:'👹', sprite:'orc', hp:12, atk:4, mp:2, speed:1, attack:'melee', xp:10},
+  {name:'Zombie', icon:'🧟', sprite:'zombie', hp:14, atk:3, mp:0, speed:0.5, attack:'melee', xp:10},
+  {name:'Mimic', icon:'📦', sprite:'mimic', hp:10, atk:5, mp:0, speed:1, attack:'melee', xp:12},
+  {name:'Ogre', icon:'🧌', sprite:'ogre', hp:18, atk:6, mp:0, speed:1, attack:'melee', xp:18},
+  {name:'Young Dragon', icon:'🐉', sprite:'dragon', hp:28, atk:8, mp:10, speed:3, attack:'magic', range:5, cost:3, xp:30}
 ];
 
 export const LOOT = {
@@ -47,10 +47,10 @@ export const MERCHANT_ITEMS = [
   {name:'Plate Armor +3', type:'equip', def:+3, hp:+10, cost:100}
 ];
 
-export const BOSS = {name:'Crystal Guardian', icon:'💠', hp:40, atk:9, mp:6, speed:0.5, attack:'magic', range:5, cost:3, xp:0};
+export const BOSS = {name:'Crystal Guardian', icon:'💠', sprite:'boss', hp:40, atk:9, mp:6, speed:0.5, attack:'magic', range:5, cost:3, xp:0};
 
 export const CLASSES = {
-  warrior: { hp: 30, mp: 0, atk: 5, def: 2, abilityCd: 5, icon:'⚔️' },
-  mage:    { hp: 18, mp: 20, atk: 2, def: 1, abilityCd: 0, icon:'🧙' },
-  hunter:  { hp: 24, mp: 8,  atk: 3, def: 1, abilityCd: 0, icon:'🏹', ammo: 40, ammoMax: 40 }
+  warrior: { hp: 30, mp: 0, atk: 5, def: 2, abilityCd: 5, icon:'⚔️', sprite:'warrior' },
+  mage:    { hp: 18, mp: 20, atk: 2, def: 1, abilityCd: 0, icon:'🧙', sprite:'mage' },
+  hunter:  { hp: 24, mp: 8,  atk: 3, def: 1, abilityCd: 0, icon:'🏹', ammo: 40, ammoMax: 40, sprite:'hunter' }
 };
