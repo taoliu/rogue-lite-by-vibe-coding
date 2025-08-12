@@ -207,6 +207,7 @@ function newPlayer(cls){
     inv: [],
     weapon: null, armor: null,
     ammo: base.ammo||0, ammoMax: base.ammoMax||0,
+    vision: base.vision,
     icon: base.icon || '@'
   }
 }
@@ -301,7 +302,8 @@ function discardItem(i){
 
 // --- Field of View (simple LOS radius) ---
 function fov(){
-  const r=10; const {x:px,y:py}=G.player;
+  const r = G.player.vision;
+  const {x:px,y:py}=G.player;
   for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) G.visible[y][x]=false;
   for(let y=py-r;y<=py+r;y++) for(let x=px-r;x<=px+r;x++){
     if(!between(x,0,MAP_W-1)||!between(y,0,MAP_H-1)) continue;

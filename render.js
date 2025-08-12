@@ -299,7 +299,7 @@ function renderMinimap() {
   }
   mctx.fillStyle = 'red';
   for (const e of G.entities) {
-    if (!G.seen[e.y][e.x]) continue;
+    if (!G.visible[e.y][e.x]) continue;
     mctx.fillRect(e.x * sx, e.y * sy, sx, sy);
   }
   mctx.fillStyle = '#ffa500';
