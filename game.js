@@ -595,8 +595,17 @@ function showWinScreen() {
   }
   stats.appendChild(list);
 
+  const restart = document.createElement('button');
+  restart.textContent = 'New Run';
+  restart.addEventListener('click', () => {
+    G.win = false;
+    modal.remove();
+    document.getElementById('classModal').style.display = 'grid';
+  });
+
   card.appendChild(run);
   card.appendChild(stats);
+  card.appendChild(restart);
   modal.appendChild(card);
   document.body.appendChild(modal);
 }

@@ -131,11 +131,21 @@ function enableShadows(obj){
 
 function createSpriteMesh(name){
   const tex = getSprite(name);
-  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+  // Sprites occasionally intersect wall geometry which causes the tops
+  // of characters to be clipped. Render them on top without writing to
+  // the depth buffer so walls in front still occlude them but walls
+  // behind will no longer clip the sprite.
+  const mat = new THREE.SpriteMaterial({
+    map: tex,
+    transparent: true,
+    depthWrite: false,
+    depthTest: false
+  });
   const sprite = new THREE.Sprite(mat);
   sprite.scale.set(1,1,1);
   sprite.center.set(0.5,0); // anchor to bottom
   sprite.castShadow = true;
+  sprite.renderOrder = 1;
   return sprite;
 }
 
