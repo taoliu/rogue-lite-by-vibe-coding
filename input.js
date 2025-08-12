@@ -19,7 +19,11 @@ function onKey(e){
       if(m.hp<=0){ defeat(m); } tick();
     } else log('No enemy to strike.');
   }
-  else if(k==='.' || k==='5') wait();
+  // Wait a turn: support period key across layouts and numpad center/decimal
+  else if(k==='.' || e.code==='Period' || e.code==='NumpadDecimal' || k==='5'){
+    e.preventDefault();
+    wait();
+  }
   else if(k===' '){ e.preventDefault(); ability(); }
   else if(/^Digit[1-9]$/.test(e.code) || /^Numpad[1-9]$/.test(e.code)){
     const num = parseInt(e.code.slice(-1));

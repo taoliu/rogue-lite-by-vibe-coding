@@ -138,8 +138,10 @@ function createSpriteMesh(name){
   const mat = new THREE.SpriteMaterial({
     map: tex,
     transparent: true,
+    // Don't write to depth so walls behind can't clip the sprite, but
+    // still test against existing depth so walls in front occlude it.
     depthWrite: false,
-    depthTest: false
+    depthTest: true
   });
   const sprite = new THREE.Sprite(mat);
   sprite.scale.set(1,1,1);
