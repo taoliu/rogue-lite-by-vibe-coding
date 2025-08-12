@@ -152,50 +152,64 @@ function createSpriteMesh(name){
 }
 
 function createCharacterMesh(color){
-  const mat = new THREE.MeshStandardMaterial({color});
+  const baseMat = new THREE.MeshStandardMaterial({color});
+  // upper body rendered on top of walls behind without writing depth
+  const topMat = baseMat.clone();
+  topMat.depthWrite = false;
+
   const group = new THREE.Group();
+  const bottom = new THREE.Group();
+  const top = new THREE.Group();
+  top.renderOrder = 1;
+  group.add(bottom);
+  group.add(top);
 
   // torso (smaller body)
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.9,0.25), mat);
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.9,0.25), topMat);
   torso.position.y = 0.75;
-  group.add(torso);
+  torso.renderOrder = 1;
+  top.add(torso);
 
   // head (larger)
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.5,16,16), mat);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.5,16,16), topMat);
   head.position.y = 1.7;
-  group.add(head);
+  head.renderOrder = 1;
+  top.add(head);
 
   // eyes
   const eyeGeom = new THREE.SphereGeometry(0.07,8,8);
   const eyeMat = new THREE.MeshStandardMaterial({color:0x000000});
+  eyeMat.depthWrite = false;
   const eyeL = new THREE.Mesh(eyeGeom, eyeMat);
   eyeL.position.set(-0.15,1.7,0.28);
+  eyeL.renderOrder = 1;
   const eyeR = eyeL.clone();
   eyeR.position.x = 0.15;
-  group.add(eyeL, eyeR);
+  top.add(eyeL, eyeR);
 
-  // belt detail
+  // belt detail (treated as bottom so wall in front can hide it)
   const belt = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.1,0.27), new THREE.MeshStandardMaterial({color:0x333333}));
   belt.position.y = 0.55;
-  group.add(belt);
+  bottom.add(belt);
 
   // arms
   const armGeom = new THREE.CylinderGeometry(0.12,0.12,0.8,8);
-  const armL = new THREE.Mesh(armGeom, mat);
+  const armL = new THREE.Mesh(armGeom, topMat.clone());
   armL.position.set(-0.4,1.0,0);
+  armL.renderOrder = 1;
   const armR = armL.clone();
   armR.position.x = 0.4;
-  group.add(armL); group.add(armR);
+  top.add(armL); top.add(armR);
 
   // legs
   const legGeom = new THREE.CylinderGeometry(0.15,0.15,0.9,8);
-  const legL = new THREE.Mesh(legGeom, mat);
+  const legL = new THREE.Mesh(legGeom, baseMat.clone());
   legL.position.set(-0.18,0.45,0);
   const legR = legL.clone();
   legR.position.x = 0.18;
-  group.add(legL); group.add(legR);
+  bottom.add(legL); bottom.add(legR);
 
-  group.userData = {legL, legR, armL, armR};
+  group.userData = {legL, legR, armL, armR, top, bottom};
   enableShadows(group);
   return group;
 }
@@ -204,10 +218,13 @@ function createGoblinMesh(){
   const g=createCharacterMesh(0x00aa00);
   const earGeom=new THREE.ConeGeometry(0.15,0.3,8);
   const earMat=new THREE.MeshLambertMaterial({color:0x00aa00});
-  const earL=new THREE.Mesh(earGeom,earMat); earL.rotation.z=Math.PI/2; earL.position.set(-0.35,1.7,0);
-  const earR=earL.clone(); earR.position.x=0.35; earR.rotation.z=-Math.PI/2; g.add(earL,earR);
+  earMat.depthWrite = false;
+  const earL=new THREE.Mesh(earGeom,earMat); earL.rotation.z=Math.PI/2; earL.position.set(-0.35,1.7,0); earL.renderOrder = 1;
+  const earR=earL.clone(); earR.position.x=0.35; earR.rotation.z=-Math.PI/2; g.userData.top.add(earL,earR);
   const dagger=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.05,0.6),new THREE.MeshLambertMaterial({color:0x888888}));
-  dagger.position.set(0.55,1,0); dagger.rotation.x=Math.PI/2; g.add(dagger);
+  dagger.material.depthWrite = false;
+  dagger.renderOrder = 1;
+  dagger.position.set(0.55,1,0); dagger.rotation.x=Math.PI/2; g.userData.top.add(dagger);
   return g;
 }
 
@@ -215,13 +232,18 @@ function createOrcMesh(){
   const g=createCharacterMesh(0x225500); g.scale.set(1.1,1.1,1.1);
   const tuskGeom=new THREE.CylinderGeometry(0.03,0.05,0.3,8);
   const tuskMat=new THREE.MeshLambertMaterial({color:0xffffff});
-  const tuskL=new THREE.Mesh(tuskGeom,tuskMat); tuskL.position.set(-0.15,1.5,0.15); tuskL.rotation.z=Math.PI/2;
-  const tuskR=tuskL.clone(); tuskR.position.x=0.15; g.add(tuskL,tuskR);
+  tuskMat.depthWrite = false;
+  const tuskL=new THREE.Mesh(tuskGeom,tuskMat); tuskL.position.set(-0.15,1.5,0.15); tuskL.rotation.z=Math.PI/2; tuskL.renderOrder = 1;
+  const tuskR=tuskL.clone(); tuskR.position.x=0.15; g.userData.top.add(tuskL,tuskR);
   const handle=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,0.8,8),new THREE.MeshLambertMaterial({color:0x8b4513}));
+  handle.material.depthWrite = false;
+  handle.renderOrder = 1;
   handle.position.set(0.55,1,0); handle.rotation.x=Math.PI/2;
   const blade=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.3,0.05),new THREE.MeshLambertMaterial({color:0xaaaaaa}));
+  blade.material.depthWrite = false;
+  blade.renderOrder = 1;
   blade.position.set(0.55,1.2,0.3);
-  g.add(handle,blade);
+  g.userData.top.add(handle,blade);
   return g;
 }
 
@@ -234,7 +256,9 @@ function createZombieMesh(){
 function createOgreMesh(){
   const g=createCharacterMesh(0x553300); g.scale.set(1.3,1.3,1.3);
   const club=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.15,1,8),new THREE.MeshLambertMaterial({color:0x8b4513}));
-  club.position.set(0.6,1.1,0); club.rotation.x=Math.PI/2; g.add(club);
+  club.material.depthWrite = false;
+  club.renderOrder = 1;
+  club.position.set(0.6,1.1,0); club.rotation.x=Math.PI/2; g.userData.top.add(club);
   return g;
 }
 
@@ -257,7 +281,9 @@ function createCrystalGuardianMesh(){
 function createMerchantMesh(){
   const g=createCharacterMesh(0x996633);
   const bag=new THREE.Mesh(new THREE.SphereGeometry(0.3,8,8),new THREE.MeshLambertMaterial({color:0x8b4513}));
-  bag.position.set(-0.4,0.9,0); g.add(bag); return g;
+  bag.material.depthWrite = false;
+  bag.renderOrder = 1;
+  bag.position.set(-0.4,0.9,0); g.userData.top.add(bag); return g;
 }
 
 function createStairsMesh(){
