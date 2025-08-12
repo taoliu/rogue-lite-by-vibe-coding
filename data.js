@@ -50,7 +50,7 @@ export const MERCHANT_ITEMS = [
 export const BOSS = {name:'Crystal Guardian', icon:'💠', hp:40, atk:9, mp:6, speed:0.5, attack:'magic', range:5, cost:3, xp:0};
 
 export const CLASSES = {
-  warrior: { hp: 30, mp: 0, atk: 5, def: 2, abilityCd: 5, icon:'⚔️' },
-  mage:    { hp: 18, mp: 20, atk: 2, def: 1, abilityCd: 0, icon:'🧙' },
-  hunter:  { hp: 24, mp: 8,  atk: 3, def: 1, abilityCd: 0, icon:'🏹', ammo: 40, ammoMax: 40 }
+  warrior: { hp: 30, mp: 0, atk: 5, def: 2, abilityCd: 5, icon:'⚔️', vision: 7 },
+  mage:    { hp: 18, mp: 20, atk: 2, def: 1, abilityCd: 0, icon:'🧙', vision: 7 },
+  hunter:  { hp: 24, mp: 8,  atk: 3, def: 1, abilityCd: 0, icon:'🏹', ammo: 40, ammoMax: 40, vision: 10 }
 };
