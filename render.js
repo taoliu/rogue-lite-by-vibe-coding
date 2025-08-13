@@ -96,6 +96,29 @@ export function render() {
   startX = Math.max(0, Math.min(MAP_W - viewTilesX, startX));
   startY = Math.max(0, Math.min(MAP_H - viewTilesY, startY));
 
+  // Reposition minimap if player overlaps with it in the top corners
+  const pScreenX = (G.player.x - startX) * TILE_SIZE;
+  const pScreenY = (G.player.y - startY) * TILE_SIZE;
+  const margin = 10;
+  if (pScreenY < minimap.height + margin) {
+    if (pScreenX < minimap.width + margin) {
+      // player near top-left, move minimap to top-right
+      minimap.style.left = 'auto';
+      minimap.style.right = margin + 'px';
+    } else if (pScreenX > canvas.width - minimap.width - margin) {
+      // player near top-right, move minimap to top-left
+      minimap.style.right = 'auto';
+      minimap.style.left = margin + 'px';
+    } else {
+      // default position when player is centered at top
+      minimap.style.right = 'auto';
+      minimap.style.left = margin + 'px';
+    }
+  } else {
+    minimap.style.right = 'auto';
+    minimap.style.left = margin + 'px';
+  }
+
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -128,12 +151,20 @@ export function render() {
     if (!G.visible[e.y][e.x]) continue;
     if (e.x < startX || e.x >= startX + viewTilesX || e.y < startY || e.y >= startY + viewTilesY) continue;
     const img = getSprite(e.name);
-    ctx.drawImage(img, (e.x - startX) * TILE_SIZE, (e.y - startY) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    const sx = (e.x - startX) * TILE_SIZE;
+    const sy = (e.y - startY) * TILE_SIZE;
+    ctx.drawImage(img, sx, sy, TILE_SIZE, TILE_SIZE);
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(sx, sy, TILE_SIZE, TILE_SIZE);
   }
 
   // player
   const pImg = getSprite('player_' + G.player.cls);
-  ctx.drawImage(pImg, (G.player.x - startX) * TILE_SIZE, (G.player.y - startY) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+  ctx.drawImage(pImg, pScreenX, pScreenY, TILE_SIZE, TILE_SIZE);
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(pScreenX, pScreenY, TILE_SIZE, TILE_SIZE);
 
   // effects
   for (const fx of G.effects) {
@@ -297,8 +328,12 @@ function renderMinimap() {
   for (const e of G.entities) {
     if (!G.visible[e.y][e.x]) continue;
     mctx.fillRect(e.x * sx, e.y * sy, sx, sy);
+    mctx.strokeStyle = '#000';
+    mctx.strokeRect(e.x * sx, e.y * sy, sx, sy);
   }
   mctx.fillStyle = '#ffa500';
   mctx.fillRect(G.player.x * sx, G.player.y * sy, sx, sy);
+  mctx.strokeStyle = '#000';
+  mctx.strokeRect(G.player.x * sx, G.player.y * sy, sx, sy);
 }
 
