@@ -140,10 +140,6 @@ function genMap() {
     const fx=(rand()*w)|0, fy=(rand()*h)|0;
     if(map[fy][fx]===T.FLOOR && !(fx===1&&fy===1)) map[fy][fx]=T.FOUNTAIN;
   }
-  for(let i=0;i<2;i++){ // trap doors
-    const tx=(rand()*w)|0, ty=(rand()*h)|0;
-    if(map[ty][tx]===T.FLOOR && !(tx===1&&ty===1)) map[ty][tx]=T.TRAP;
-  }
 
   G.map = map; G.seen = seen; G.visible = visible; G.effects=[];
   randomizeWallTexture();
@@ -355,10 +351,6 @@ function move(dx,dy){
     G.player.hp = Math.min(G.player.hpMax, G.player.hp+5);
     G.player.mp = Math.min(G.player.mpMax, G.player.mp+5);
     log('You feel refreshed by the fountain.');
-  } else if(tile===T.TRAP){
-    log('You fall through a trap door!');
-    descend();
-    return;
   }
   if(G.player.cls==='mage'){
     G.player.mp = Math.min(G.player.mpMax, G.player.mp + 1);
