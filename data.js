@@ -5,8 +5,7 @@ export const T = {
   STAIRS: 2,
   CHEST: 3,
   WATER: 4,
-  FOUNTAIN: 5,
-  TRAP: 6
+  FOUNTAIN: 5
 };
 export const TILE_SIZE = 24; // pixels per tile
 export const MAP_W = 40, MAP_H = 30; // 40x30 -> 960x720 canvas

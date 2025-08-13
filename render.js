@@ -51,37 +51,33 @@ function rect(x, y, w, h, col) {
   ctx.fillRect(x, y, w, h);
 }
 
-function drawTile(mx, my, t, startX, startY) {
-  const px = (mx - startX) * TILE_SIZE;
-  const py = (my - startY) * TILE_SIZE;
-  if (t === T.WALL) {
-    if (!wallPattern) wallPattern = ctx.createPattern(wallCanvas, 'repeat');
-    ctx.fillStyle = wallPattern;
-    ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-  } else if (t === T.FLOOR) rect(px, py, TILE_SIZE, TILE_SIZE, '#dddddd');
-  else if (t === T.STAIRS) {
-    rect(px, py, TILE_SIZE, TILE_SIZE, '#654321');
-    ctx.fillStyle = '#333333';
-    ctx.fillRect(px + 4, py + 4, 16, 16);
-  } else if (t === T.CHEST) {
-    rect(px, py, TILE_SIZE, TILE_SIZE, '#dddddd');
-    ctx.fillStyle = '#8b5e34';
-    ctx.fillRect(px + 5, py + 6, 14, 12);
-    ctx.fillStyle = '#d4af37';
-    ctx.fillRect(px + 5, py + 12, 14, 2);
-  } else if (t === T.WATER) rect(px, py, TILE_SIZE, TILE_SIZE, '#cceeff');
-  else if (t === T.FOUNTAIN) {
-    rect(px, py, TILE_SIZE, TILE_SIZE, '#dddddd');
-    ctx.fillStyle = '#4fc3f7';
-    ctx.beginPath();
-    ctx.arc(px + TILE_SIZE / 2, py + TILE_SIZE / 2, 6, 0, Math.PI * 2);
-    ctx.fill();
-  } else if (t === T.TRAP) {
-    rect(px, py, TILE_SIZE, TILE_SIZE, '#dddddd');
-    ctx.fillStyle = '#000';
-    ctx.fillRect(px + 4, py + 4, 16, 16);
+  function drawTile(mx, my, t, startX, startY) {
+    const px = (mx - startX) * TILE_SIZE;
+    const py = (my - startY) * TILE_SIZE;
+    if (t === T.WALL) {
+      if (!wallPattern) wallPattern = ctx.createPattern(wallCanvas, 'repeat');
+      ctx.fillStyle = wallPattern;
+      ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+    } else if (t === T.FLOOR) rect(px, py, TILE_SIZE, TILE_SIZE, '#dddddd');
+    else if (t === T.STAIRS) {
+      rect(px, py, TILE_SIZE, TILE_SIZE, '#654321');
+      ctx.fillStyle = '#333333';
+      ctx.fillRect(px + 4, py + 4, 16, 16);
+    } else if (t === T.CHEST) {
+      rect(px, py, TILE_SIZE, TILE_SIZE, '#dddddd');
+      ctx.fillStyle = '#8b5e34';
+      ctx.fillRect(px + 5, py + 6, 14, 12);
+      ctx.fillStyle = '#d4af37';
+      ctx.fillRect(px + 5, py + 12, 14, 2);
+    } else if (t === T.WATER) rect(px, py, TILE_SIZE, TILE_SIZE, '#cceeff');
+    else if (t === T.FOUNTAIN) {
+      rect(px, py, TILE_SIZE, TILE_SIZE, '#dddddd');
+      ctx.fillStyle = '#4fc3f7';
+      ctx.beginPath();
+      ctx.arc(px + TILE_SIZE / 2, py + TILE_SIZE / 2, 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
-}
 
 export function resetScene() {
   // no-op for 2D renderer
