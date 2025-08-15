@@ -150,7 +150,7 @@ export function render() {
   for (const e of G.entities) {
     if (!G.visible[e.y][e.x]) continue;
     if (e.x < startX || e.x >= startX + viewTilesX || e.y < startY || e.y >= startY + viewTilesY) continue;
-    const img = getSprite(e.name);
+    const img = getSprite(e.sprite || e.name);
     const sx = (e.x - startX) * TILE_SIZE;
     const sy = (e.y - startY) * TILE_SIZE;
     ctx.drawImage(img, sx, sy, TILE_SIZE, TILE_SIZE);

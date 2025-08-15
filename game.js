@@ -177,9 +177,13 @@ function genMap() {
 function placeMerchant(){
   const {rand}=G.rng, w=MAP_W, h=MAP_H;
   let mx=0,my=0,tries=0;
-  do{ mx=(rand()*w)|0; my=(rand()*h)|0; tries++; } while(G.map[my][mx]!==T.FLOOR && tries<1000);
+  // ensure merchant doesn't spawn on player's starting tile
+  do{
+    mx=(rand()*w)|0; my=(rand()*h)|0; tries++;
+  } while((G.map[my][mx]!==T.FLOOR || (mx===1 && my===1)) && tries<1000);
   const stock = MERCHANT_ITEMS.map(it=>JSON.parse(JSON.stringify(it)));
-  G.entities.push({type:'merchant', name:'Merchant', icon:'💰', x:mx, y:my, stock});
+  // keep display name capitalized but specify sprite file explicitly
+  G.entities.push({type:'merchant', name:'Merchant', sprite:'merchant', icon:'💰', x:mx, y:my, stock});
 }
 
 function placeBoss(){
