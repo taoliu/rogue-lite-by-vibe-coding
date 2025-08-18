@@ -51,6 +51,16 @@ function rect(x, y, w, h, col) {
   ctx.fillRect(x, y, w, h);
 }
 
+function drawSpriteWithOutline(img, x, y) {
+  ctx.save();
+  ctx.shadowColor = '#000';
+  ctx.shadowBlur = 4;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
+  ctx.drawImage(img, x, y, TILE_SIZE, TILE_SIZE);
+  ctx.restore();
+}
+
   function drawTile(mx, my, t, startX, startY) {
     const px = (mx - startX) * TILE_SIZE;
     const py = (my - startY) * TILE_SIZE;
@@ -153,18 +163,12 @@ export function render() {
     const img = getSprite(e.sprite || e.name);
     const sx = (e.x - startX) * TILE_SIZE;
     const sy = (e.y - startY) * TILE_SIZE;
-    ctx.drawImage(img, sx, sy, TILE_SIZE, TILE_SIZE);
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(sx, sy, TILE_SIZE, TILE_SIZE);
+    drawSpriteWithOutline(img, sx, sy);
   }
 
   // player
   const pImg = getSprite('player_' + G.player.cls);
-  ctx.drawImage(pImg, pScreenX, pScreenY, TILE_SIZE, TILE_SIZE);
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(pScreenX, pScreenY, TILE_SIZE, TILE_SIZE);
+  drawSpriteWithOutline(pImg, pScreenX, pScreenY);
 
   // effects
   for (const fx of G.effects) {
