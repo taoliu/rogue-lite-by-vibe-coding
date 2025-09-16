@@ -1,4 +1,4 @@
-import { T, TILE_SIZE, MAP_W, MAP_H } from './data.js';
+import { T, TILE_SIZE, MAP_W, MAP_H, FLOOR_THEMES } from './data.js';
 import { G, useItem, discardItem } from './game.js';
 import { getSprite } from './sprites.js';
 
@@ -26,25 +26,35 @@ resizeCanvas();
 
 // --- Wall Texture ---
 let wallCanvas, wallPattern;
+let tileTheme = FLOOR_THEMES[0];
+
 export function randomizeWallTexture() {
   const size = 64;
   wallCanvas = document.createElement('canvas');
   wallCanvas.width = wallCanvas.height = size;
   const c = wallCanvas.getContext('2d');
-  c.fillStyle = '#aaaaaa';
+  const theme = tileTheme || FLOOR_THEMES[0];
+  c.fillStyle = theme.wallMortar || theme.wallBase;
   c.fillRect(0, 0, size, size);
   const brickW = 32, brickH = 16;
+  const bricks = (theme.wallBricks && theme.wallBricks.length) ? theme.wallBricks : [theme.wallBase || theme.wallMortar];
   for (let y = 0; y < size; y += brickH) {
     const offset = (y / brickH) % 2 ? brickW / 2 : 0;
     for (let x = -offset; x < size; x += brickW) {
-      const shade = 180 + Math.floor(Math.random() * 40);
-      c.fillStyle = `rgb(${shade},${shade},${shade})`;
+      const shade = bricks[(Math.random() * bricks.length) | 0] || theme.wallBase;
+      c.fillStyle = shade;
       c.fillRect(x + 1, y + 1, brickW - 2, brickH - 2);
     }
   }
   wallPattern = null; // rebuild on next draw
 }
 randomizeWallTexture();
+
+export function applyFloorTheme(floor) {
+  const idx = Math.max(0, Math.min(FLOOR_THEMES.length - 1, (floor | 0) - 1));
+  tileTheme = FLOOR_THEMES[idx] || FLOOR_THEMES[0];
+  randomizeWallTexture();
+}
 
 function rect(x, y, w, h, col) {
   ctx.fillStyle = col;
@@ -61,33 +71,36 @@ function drawSpriteWithOutline(img, x, y) {
   ctx.restore();
 }
 
-  function drawTile(mx, my, t, startX, startY) {
-    const px = (mx - startX) * TILE_SIZE;
-    const py = (my - startY) * TILE_SIZE;
-    if (t === T.WALL) {
-      if (!wallPattern) wallPattern = ctx.createPattern(wallCanvas, 'repeat');
-      ctx.fillStyle = wallPattern;
-      ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-    } else if (t === T.FLOOR) rect(px, py, TILE_SIZE, TILE_SIZE, '#dddddd');
-    else if (t === T.STAIRS) {
-      rect(px, py, TILE_SIZE, TILE_SIZE, '#654321');
-      ctx.fillStyle = '#333333';
-      ctx.fillRect(px + 4, py + 4, 16, 16);
-    } else if (t === T.CHEST) {
-      rect(px, py, TILE_SIZE, TILE_SIZE, '#dddddd');
-      ctx.fillStyle = '#8b5e34';
-      ctx.fillRect(px + 5, py + 6, 14, 12);
-      ctx.fillStyle = '#d4af37';
-      ctx.fillRect(px + 5, py + 12, 14, 2);
-    } else if (t === T.WATER) rect(px, py, TILE_SIZE, TILE_SIZE, '#cceeff');
-    else if (t === T.FOUNTAIN) {
-      rect(px, py, TILE_SIZE, TILE_SIZE, '#dddddd');
-      ctx.fillStyle = '#4fc3f7';
-      ctx.beginPath();
-      ctx.arc(px + TILE_SIZE / 2, py + TILE_SIZE / 2, 6, 0, Math.PI * 2);
-      ctx.fill();
-    }
+function drawTile(mx, my, t, startX, startY) {
+  const px = (mx - startX) * TILE_SIZE;
+  const py = (my - startY) * TILE_SIZE;
+  const theme = tileTheme || FLOOR_THEMES[0];
+  if (t === T.WALL) {
+    if (!wallPattern) wallPattern = ctx.createPattern(wallCanvas, 'repeat');
+    ctx.fillStyle = wallPattern;
+    ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+  } else if (t === T.FLOOR) {
+    rect(px, py, TILE_SIZE, TILE_SIZE, theme.floor || '#dddddd');
+  } else if (t === T.STAIRS) {
+    rect(px, py, TILE_SIZE, TILE_SIZE, theme.stairs || '#654321');
+    ctx.fillStyle = theme.stairsInset || '#333333';
+    ctx.fillRect(px + 4, py + 4, 16, 16);
+  } else if (t === T.CHEST) {
+    rect(px, py, TILE_SIZE, TILE_SIZE, theme.floor || '#dddddd');
+    ctx.fillStyle = theme.chest || '#8b5e34';
+    ctx.fillRect(px + 5, py + 6, 14, 12);
+    ctx.fillStyle = theme.chestBand || '#d4af37';
+    ctx.fillRect(px + 5, py + 12, 14, 2);
+  } else if (t === T.WATER) {
+    rect(px, py, TILE_SIZE, TILE_SIZE, theme.water || '#cceeff');
+  } else if (t === T.FOUNTAIN) {
+    rect(px, py, TILE_SIZE, TILE_SIZE, theme.floor || '#dddddd');
+    ctx.fillStyle = theme.fountain || '#4fc3f7';
+    ctx.beginPath();
+    ctx.arc(px + TILE_SIZE / 2, py + TILE_SIZE / 2, 6, 0, Math.PI * 2);
+    ctx.fill();
   }
+}
 
 export function resetScene() {
   // no-op for 2D renderer
@@ -317,14 +330,16 @@ export function updateUI() {
 function renderMinimap() {
   mctx.clearRect(0, 0, minimap.width, minimap.height);
   const sx = minimap.width / MAP_W, sy = minimap.height / MAP_H;
+  const theme = tileTheme || FLOOR_THEMES[0];
+  const mTheme = theme.minimap || {};
   for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
     if (!G.seen[y][x]) continue;
     const t = G.map[y][x];
-    let col = '#ddd';
-    if (t === T.WALL) col = '#888';
-    else if (t === T.WATER) col = '#55f';
-    else if (t === T.STAIRS) col = '#654321';
-    else if (t === T.FOUNTAIN) col = '#4fc3f7';
+    let col = mTheme.floor || theme.floor || '#ddd';
+    if (t === T.WALL) col = mTheme.wall || theme.wallBase || '#888';
+    else if (t === T.WATER) col = mTheme.water || theme.water || '#55f';
+    else if (t === T.STAIRS) col = mTheme.stairs || theme.stairs || '#654321';
+    else if (t === T.FOUNTAIN) col = mTheme.fountain || theme.fountain || '#4fc3f7';
     mctx.fillStyle = col;
     mctx.fillRect(x * sx, y * sy, sx, sy);
   }
@@ -340,4 +355,3 @@ function renderMinimap() {
   mctx.strokeStyle = '#000';
   mctx.strokeRect(G.player.x * sx, G.player.y * sy, sx, sy);
 }
-
