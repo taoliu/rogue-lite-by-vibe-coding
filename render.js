@@ -62,6 +62,21 @@ function rect(x, y, w, h, col) {
 }
 
 function drawSpriteWithOutline(img, x, y) {
+  if (!img) return;
+  if (!img.complete || !img.naturalWidth) {
+    if (!img.__pendingRender) {
+      img.__pendingRender = true;
+      img.addEventListener('load', () => {
+        img.__pendingRender = false;
+        render();
+      }, { once: true });
+      img.addEventListener('error', () => {
+        img.__pendingRender = false;
+        render();
+      }, { once: true });
+    }
+    return;
+  }
   ctx.save();
   ctx.shadowColor = '#000';
   ctx.shadowBlur = 4;
